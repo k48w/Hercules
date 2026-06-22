@@ -227,51 +227,15 @@ namespace Hercules.UI.Elements.Settings.Pages
                     return;
                 }
 
-                string currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                string? latestVersion = await GithubUpdater.GetLatestVersionTagAsync();
-                if (string.IsNullOrWhiteSpace(latestVersion))
-                {
-                    Frontend.ShowMessageBox("Hercules could not retrieve release information.");
-                    return;
-                }
-
-                if (IsNewerVersion(latestVersion, currentVersion))
-                {
-                    Frontend.ShowMessageBox(
-                        $"A new version ({latestVersion}) is available!"
-                    );
-                    if (!await GithubUpdater.DownloadAndInstallUpdate(latestVersion))
-                    {
-                        Frontend.ShowMessageBox("The update failed verification and was not installed.");
-                        return;
-                    }
-
-                    Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true });
-                    Application.Current.Shutdown();
-                }
-                else
-                {
-                    Frontend.ShowMessageBox(
-                        "You are already running the latest version of Hercules."
-                    );
-                }
+                var dialog = new UpdateDialog();
+                if (Window.GetWindow(this) is Window owner)
+                    dialog.Owner = owner;
+                dialog.ShowDialog();
             }
             catch (Exception ex)
             {
-                Frontend.ShowMessageBox(
-                    $"Error checking for updates:\n{ex.Message}"
-                );
+                Frontend.ShowMessageBox($"Error checking for updates:\n{ex.Message}");
             }
-        }
-
-        private bool IsNewerVersion(string latest, string current)
-        {
-            if (Version.TryParse(latest.TrimStart('v'), out var latestV) &&
-                Version.TryParse(current, out var currentV))
-            {
-                return latestV > currentV;
-            }
-            return false;
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)

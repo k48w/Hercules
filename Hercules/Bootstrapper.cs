@@ -296,7 +296,12 @@ namespace Hercules
 
             SetStatus($"Updating to v{normalizedTag}...");
 
-            bool ok = await GithubUpdater.DownloadAndInstallUpdate(latestTag);
+            var progress = new Progress<double>(p =>
+            {
+                SetStatus($"Downloading update... {p * 100:F0}%");
+            });
+
+            bool ok = await GithubUpdater.DownloadAndInstallUpdate(latestTag, progress);
             if (ok)
             {
                 App.Logger.WriteLine(logIdent, "Update installed restarting Hercules...");

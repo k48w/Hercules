@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -65,6 +67,11 @@ namespace Hercules
             {
                 App.Logger.WriteLine(LOG_IDENT, $"Opening bootstrapper ({App.LaunchSettings.RobloxLaunchMode})");
                 LaunchRoblox(App.LaunchSettings.RobloxLaunchMode);
+            }
+            else if (App.LaunchSettings.ProtocolFlag.Active && !string.IsNullOrEmpty(App.LaunchSettings.ProtocolFlag.Data))
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Handling protocol: {App.LaunchSettings.ProtocolFlag.Data}");
+                ProcessProtocol(App.LaunchSettings.ProtocolFlag.Data);
             }
             else if (App.LaunchSettings.BloxshadeFlag.Active)
             {
@@ -375,6 +382,116 @@ namespace Hercules
 
             new BloxshadeDialog().ShowDialog();
             App.SoftTerminate();
+        }
+
+        public static async void ProcessProtocol(string url)
+        {
+            const string LOG_IDENT = "LaunchHandler::ProcessProtocol";
+
+            if (!url.StartsWith("hercules://", StringComparison.OrdinalIgnoreCase))
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Unknown protocol: {url}");
+                return;
+            }
+
+            var path = url["hercules://".Length..].TrimEnd('/');
+            var parts = path.Split('?');
+            var action = parts[0].ToLowerInvariant();
+            var query = parts.Length > 1 ? System.Web.HttpUtility.ParseQueryString(parts[1]) : null;
+
+            App.Logger.WriteLine(LOG_IDENT, $"Protocol action: {action}");
+
+            try
+            {
+                switch (action)
+                {
+                    case "preset" or "apply-preset":
+                        var presetName = query?["name"] ?? parts.ElementAtOrDefault(1) ?? "";
+                        ApplyPreset(presetName);
+                        break;
+
+                    case "settings" or "menu":
+                        LaunchSettings();
+                        break;
+
+                    case "open-settings-page":
+                        var page = query?["page"] ?? "";
+                        LaunchSettings(); // opens settings; user navigates
+                        break;
+
+                    case "import":
+                        var importUrl = query?["url"] ?? "";
+                        if (!string.IsNullOrEmpty(importUrl))
+                            await ImportFromUrl(importUrl);
+                        break;
+
+                    case "download":
+                        App.Logger.WriteLine(LOG_IDENT, "Opening download page");
+                        Utilities.OpenWebsite(App.ProjectDownloadLink);
+                        App.SoftTerminate();
+                        break;
+
+                    case "donate":
+                        App.Logger.WriteLine(LOG_IDENT, "Opening donate page");
+                        Utilities.OpenWebsite("https://ko-fi.com/hercules");
+                        App.SoftTerminate();
+                        break;
+
+                    default:
+                        App.Logger.WriteLine(LOG_IDENT, $"Unknown protocol action: {action}");
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT, ex);
+            }
+        }
+
+        private static void ApplyPreset(string presetName)
+        {
+            const string LOG_IDENT = "LaunchHandler::ApplyPreset";
+
+            var theme = Integrations.FlagPresetThemesProvider.GetAllThemes()
+                .FirstOrDefault(t =>
+                    t.Name.Equals(presetName, StringComparison.OrdinalIgnoreCase) ||
+                    t.Name.Replace(" ", "-").Equals(presetName, StringComparison.OrdinalIgnoreCase));
+
+            if (theme == null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Preset not found: {presetName}");
+                return;
+            }
+
+            App.Logger.WriteLine(LOG_IDENT, $"Applying preset: {theme.Name}");
+            FlagPresetThemesProvider.ApplyTheme(theme);
+            App.SoftTerminate();
+        }
+
+        private static async Task ImportFromUrl(string url)
+        {
+            const string LOG_IDENT = "LaunchHandler::ImportFromUrl";
+
+            try
+            {
+                using var http = new HttpClient();
+                var response = await http.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                var tempFile = Path.Combine(Path.GetTempPath(), $"hercules-import-{Guid.NewGuid()}.hercules");
+                await using (var fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write))
+                    await response.Content.CopyToAsync(fs);
+
+                var config = ConfigExporter.ImportFromFile(tempFile);
+                if (config != null)
+                {
+                    ConfigExporter.ApplyConfig(config);
+                    App.Logger.WriteLine(LOG_IDENT, "Config imported successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException(LOG_IDENT, ex);
+            }
         }
     }
 }

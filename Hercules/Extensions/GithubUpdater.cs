@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Hercules;
 
@@ -13,6 +14,8 @@ public static class GithubUpdater
     {
         DefaultRequestHeaders = { { "User-Agent", "Hercules-Updater" } }
     };
+
+    public static event Action<string, string>? UpdateAvailable;
 
     public static async Task<string?> GetLatestVersionTagAsync()
     {
@@ -36,7 +39,7 @@ public static class GithubUpdater
         }
     }
 
-    public static async Task<bool> DownloadAndInstallUpdate(string tag)
+    public static async Task<bool> DownloadAndInstallUpdate(string tag, IProgress<double>? progress = null)
     {
         if (!App.IsRepositoryConfigured)
             return false;
@@ -64,7 +67,7 @@ public static class GithubUpdater
                     : "";
 
                 if (string.Equals(name, "Hercules.exe", StringComparison.OrdinalIgnoreCase))
-                    return await UpdateExe(downloadUrl, name, digest);
+                    return await UpdateExe(downloadUrl, name, digest, progress);
             }
 
             App.Logger.WriteLine("GitHubUpdater", "No Hercules.exe release asset found.");
@@ -77,7 +80,7 @@ public static class GithubUpdater
         }
     }
 
-    private static async Task<bool> UpdateExe(string url, string name, string digest)
+    private static async Task<bool> UpdateExe(string url, string name, string digest, IProgress<double>? progress)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var downloadUri) || downloadUri.Scheme != Uri.UriSchemeHttps)
         {
@@ -101,6 +104,7 @@ public static class GithubUpdater
             if (response.Content.Headers.ContentLength is > MaximumUpdateSize)
                 throw new InvalidDataException("Update exceeds the maximum allowed size.");
 
+            long totalBytes = response.Content.Headers.ContentLength ?? -1;
             await using var input = await response.Content.ReadAsStreamAsync();
             await using var output = new FileStream(exePath, FileMode.Create, FileAccess.Write, FileShare.None);
             var buffer = new byte[81920];
@@ -112,8 +116,12 @@ public static class GithubUpdater
                 if (total > MaximumUpdateSize)
                     throw new InvalidDataException("Update exceeds the maximum allowed size.");
                 await output.WriteAsync(buffer.AsMemory(0, read));
+                if (totalBytes > 0)
+                    progress?.Report((double)total / totalBytes);
             }
         }
+
+        progress?.Report(0.95);
 
         await using (var downloaded = File.OpenRead(exePath))
         {
@@ -126,6 +134,8 @@ public static class GithubUpdater
                 return false;
             }
         }
+
+        progress?.Report(0.98);
 
         string currentExe = Environment.ProcessPath!;
         string backupExe = currentExe + ".old";

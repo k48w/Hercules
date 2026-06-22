@@ -83,6 +83,7 @@ namespace Hercules
             }
 
             WindowsRegistry.RegisterApis();
+            WindowsRegistry.RegisterHercules();
 
             // only register player, for the scenario where the user installs Hercules, closes it,
             // and then launches from the website expecting it to work

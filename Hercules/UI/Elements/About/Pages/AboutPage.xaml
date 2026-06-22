@@ -95,7 +95,12 @@
                 Margin="0,0,8,0"
                 Content="Website"
                 Icon="Globe20"
-                NavigateUri="https://github.com/k48w/Hercules" />
+                NavigateUri="https://hercules-launcher.vercel.app" />
+            <ui:Anchor
+                Margin="0,0,8,0"
+                Content="Download"
+                Icon="ArrowDownload24"
+                NavigateUri="https://hercules-launcher.vercel.app/download" />
             <ui:Anchor
                 Click="Anchor_Click"
                 Content="{x:Static resources:Strings.Menu_About_DiscordServer}"

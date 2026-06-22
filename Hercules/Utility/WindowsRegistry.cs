@@ -103,6 +103,11 @@ namespace Hercules.Utility
                 App.Logger.WriteLine("Registry::RegisterStudioFileType", $"Failed for {extension}: {ex}");
             }
         }
+        public static void RegisterHercules()
+        {
+            RegisterProtocol("hercules", "Hercules", Paths.Application, "-protocol \"%1\"");
+        }
+
         public static void RegisterApis()
         {
             try

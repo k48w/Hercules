@@ -81,7 +81,7 @@
 
                 <StackPanel Grid.Row="1" HorizontalAlignment="Center">
                     <ui:Hyperlink Icon="QuestionCircle48" Content="{x:Static resources:Strings.About_Title}" Command="{Binding LaunchAboutCommand, Mode=OneTime}" />
-                    <ui:Hyperlink Icon="Heart20" Content="Donate Ko-Fi" NavigateUri="https://github.com/k48w/Hercules" HorizontalAlignment="Center" />
+                    <ui:Hyperlink Icon="Heart20" Content="Donate" NavigateUri="https://github.com/k48w/Hercules" HorizontalAlignment="Center" />
                 </StackPanel>
 
                 <!--  About Link  -->
@@ -160,7 +160,7 @@
                     Width="285"
                     Margin="0,10,0,0"
                     Command="models:GlobalViewModel.OpenWebpageCommand"
-                    CommandParameter="https://github.com/k48w/Hercules"
+                    CommandParameter="https://hercules-launcher.vercel.app"
                     Icon="Globe20"
                     IconFilled="False"
                     TabIndex="2">

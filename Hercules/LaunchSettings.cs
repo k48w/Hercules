@@ -43,6 +43,8 @@ namespace Hercules
 
         public LaunchFlag BloxshadeFlag { get; } = new("bloxshade");
 
+        public LaunchFlag ProtocolFlag { get; } = new("protocol");
+
 #if DEBUG
         public bool BypassUpdateCheck => true;
 #else

@@ -26,8 +26,9 @@ namespace Hercules
 #endif
         public const string ProjectOwner = "Hercules";
         public const string ProjectRepository = "k48w/Hercules";
-        public const string ProjectDownloadLink = "https://github.com/k48w/Hercules/releases";
-        public const string ProjectHelpLink = "https://github.com/BloxstrapLabs/Bloxstrap/wiki";
+        public const string ProjectWebsite = "https://hercules-launcher.vercel.app";
+        public const string ProjectDownloadLink = "https://hercules-launcher.vercel.app/download";
+        public const string ProjectHelpLink = "https://hercules-launcher.vercel.app/docs";
         public const string ProjectSupportLink = "https://github.com/k48w/Hercules/issues/new";
         public static bool IsRepositoryConfigured => !ProjectRepository.StartsWith("YOUR_GITHUB_OWNER/", StringComparison.Ordinal);
 
@@ -47,6 +48,8 @@ namespace Hercules
 
         public static Bootstrapper? Bootstrapper { get; set; } = null!;
         public const int TaskbarProgressMaximum = 100;
+
+        public static readonly AutoUpdateService AutoUpdater = new();
 
         public static bool IsActionBuild => BuildMetadata is not null && !String.IsNullOrEmpty(BuildMetadata.CommitRef);
 
@@ -429,6 +432,11 @@ namespace Hercules
                     Installer.HandleUpgrade();
 
                 WindowsRegistry.RegisterApis();
+                WindowsRegistry.RegisterHercules();
+
+                if (!LaunchSettings.UninstallFlag.Active && !LaunchSettings.WatcherFlag.Active)
+                    AutoUpdater.Start();
+
                 LaunchHandler.ProcessLaunchArgs();
             }
         }
@@ -471,6 +479,8 @@ namespace Hercules
         {
             try
             {
+                AutoUpdater.Dispose();
+
                 if (Current.MainWindow?.DataContext is RPCCustomizerViewModel rpcVm)
                 {
                     rpcVm?.GetType()
