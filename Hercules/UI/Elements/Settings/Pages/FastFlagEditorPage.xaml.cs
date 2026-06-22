@@ -451,9 +451,16 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
+            try
+            {
+                ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::Page_Loaded", ex);
+            }
         }
 
         private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)

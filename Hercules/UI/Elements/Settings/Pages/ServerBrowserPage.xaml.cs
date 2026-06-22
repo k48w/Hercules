@@ -177,10 +177,17 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrWhiteSpace(lastLoadedPlaceId))
-                await LoadServersAsync(manual: true, ignoreCooldown: true);
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(lastLoadedPlaceId))
+                    await LoadServersAsync(manual: true, ignoreCooldown: true);
 
-            refreshTimer.Start();
+                refreshTimer.Start();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("ServerBrowserPage::Page_Loaded", ex);
+            }
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
@@ -199,27 +206,41 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void DebounceTimer_Tick(object sender, EventArgs e)
         {
-            debounceTimer.Stop();
-
-            string newPlaceId = PlaceIdTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(newPlaceId))
+            try
             {
-                ClearServers();
-                return;
+                debounceTimer.Stop();
+
+                string newPlaceId = PlaceIdTextBox.Text.Trim();
+                if (string.IsNullOrEmpty(newPlaceId))
+                {
+                    ClearServers();
+                    return;
+                }
+
+                if (newPlaceId == lastLoadedPlaceId)
+                    return;
+
+                lastLoadedPlaceId = newPlaceId;
+                App.Settings.Prop.LastServerSave = newPlaceId;
+
+                await LoadServersAsync(manual: true, ignoreCooldown: true);
             }
-
-            if (newPlaceId == lastLoadedPlaceId)
-                return;
-
-            lastLoadedPlaceId = newPlaceId;
-            App.Settings.Prop.LastServerSave = newPlaceId;
-
-            await LoadServersAsync(manual: true, ignoreCooldown: true);
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("ServerBrowserPage::DebounceTimer_Tick", ex);
+            }
         }
 
         private async void RefreshTimer_Tick(object sender, EventArgs e)
         {
-            await LoadServersAsync(manual: false);
+            try
+            {
+                await LoadServersAsync(manual: false);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("ServerBrowserPage::RefreshTimer_Tick", ex);
+            }
         }
 
         #endregion
