@@ -222,18 +222,25 @@ namespace Hercules.UI.Elements.Dialogs
 
         private async void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            var searchTerm = SearchTextBox.Text?.Trim();
-            if (string.IsNullOrEmpty(searchTerm))
+            try
             {
-                _searchResults.Clear();
-                UpdateSearchResultsCount();
-                return;
+                var searchTerm = SearchTextBox.Text?.Trim();
+                if (string.IsNullOrEmpty(searchTerm))
+                {
+                    _searchResults.Clear();
+                    UpdateSearchResultsCount();
+                    return;
+                }
+
+                await Task.Delay(300); // Debounce
+                if (SearchTextBox.Text?.Trim() != searchTerm) return;
+
+                await PerformSearchAsync(searchTerm);
             }
-
-            await Task.Delay(300); // Debounce
-            if (SearchTextBox.Text?.Trim() != searchTerm) return; // User kept typing
-
-            await PerformSearchAsync(searchTerm);
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FFlagSearchDialog::SearchTextBox_TextChanged", ex);
+            }
         }
 
         private async Task PerformSearchAsync(string searchTerm)
