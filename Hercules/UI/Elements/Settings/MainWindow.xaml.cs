@@ -1698,6 +1698,11 @@ namespace Hercules.UI.Elements.Settings
         private void NavigationItem_Click_1(object sender, RoutedEventArgs e) { }
 
 
+        private void ImportExportButton_Click(object sender, RoutedEventArgs e)
+        {
+            new ImportExportDialog().ShowDialog();
+        }
+
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
         }

@@ -62,11 +62,8 @@ namespace Hercules.UI.Elements.Dialogs
             }
         }
 
-        // Prevent the window from closing if the user clicks the close button (X)
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            e.Cancel = true; // Cancel the close operation
-            // Optionally, you can show a message here to indicate that the dialog won't close
         }
     }
 }

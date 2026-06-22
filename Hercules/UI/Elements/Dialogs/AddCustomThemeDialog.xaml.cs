@@ -67,7 +67,7 @@ namespace Hercules.UI.Elements.Dialogs
             return $"{name}_{Random.Shared.Next(maxTries + 1, 1_000_000)}";
         }
 
-        private static void CreateCustomTheme(string name, CustomThemeTemplate template)
+        private static async Task CreateCustomTheme(string name, CustomThemeTemplate template)
         {
             string dir = Path.Combine(Paths.CustomThemes, name);
 
@@ -77,7 +77,7 @@ namespace Hercules.UI.Elements.Dialogs
 
             string themeFilePath = Path.Combine(dir, "Theme.xml");
 
-            string templateContent = Encoding.UTF8.GetString(Resource.Get(template.GetFileName()).Result);
+            string templateContent = Encoding.UTF8.GetString(await Resource.Get(template.GetFileName()));
 
             File.WriteAllText(themeFilePath, templateContent);
         }
@@ -170,12 +170,12 @@ namespace Hercules.UI.Elements.Dialogs
             }
         }
 
-        private void CreateNew()
+        private async void CreateNew()
         {
             if (!ValidateCreateNew())
                 return;
 
-            CreateCustomTheme(_viewModel.Name, _viewModel.Template);
+            await CreateCustomTheme(_viewModel.Name, _viewModel.Template);
 
             Created = true;
             ThemeName = _viewModel.Name;

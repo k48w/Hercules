@@ -183,13 +183,13 @@ namespace Hercules.RobloxInterfaces
             return new Exception("Failed to connect to any setup mirrors.");
         }
 
-        public static string GetLocation(string resource)
+        public static async Task<string> GetLocation(string resource)
         {
             var location = BaseUrl;
 
             if (!IsDefaultChannel)
             {
-                var useCommon = ApplicationSettings
+                var useCommon = await ApplicationSettings
                     .GetSettings(nameof(ApplicationSettings.PCClientBootstrapper), Channel)
                     .Get<bool>("FFlagReplaceChannelNameForDownload");
 

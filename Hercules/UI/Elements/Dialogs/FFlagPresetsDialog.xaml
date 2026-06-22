@@ -31,7 +31,7 @@
         </Grid.RowDefinitions>
 
         <ui:TitleBar
-            Title="FFlag Preset Values"
+            Title="FFlag Presets"
             Grid.Row="0"
             Padding="8"
             CanMaximize="False"
@@ -39,12 +39,26 @@
             ShowMaximize="False"
             ShowMinimize="False" />
 
-        <ScrollViewer
+        <TabControl
+            x:Name="MainTabControl"
             Grid.Row="1"
-            Margin="16"
-            VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="PresetStackPanel" />
-        </ScrollViewer>
+            Margin="16,16,16,0"
+            Background="Transparent">
+            <TabItem Header="Values">
+                <ScrollViewer
+                    Margin="0,8,0,0"
+                    VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PresetStackPanel" />
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Themes">
+                <ScrollViewer
+                    Margin="0,8,0,0"
+                    VerticalScrollBarVisibility="Auto">
+                    <WrapPanel x:Name="ThemePanel" />
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
 
         <Border
             Grid.Row="2"

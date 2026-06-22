@@ -441,6 +441,8 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                         </Grid>
                     </ItemsPanelTemplate>
@@ -478,6 +480,14 @@
                 </StatusBarItem>
 
                 <StatusBarItem Grid.Column="4" Padding="0,0,8,0">
+                    <ui:Button
+                        Appearance="Secondary"
+                        Click="ImportExportButton_Click"
+                        Content="Import/Export"
+                        Icon="Library24" />
+                </StatusBarItem>
+
+                <StatusBarItem Grid.Column="5" Padding="0,0,8,0">
                     <ui:Button Width="56.587"
                                HorizontalAlignment="Center"
                                Appearance="Secondary"

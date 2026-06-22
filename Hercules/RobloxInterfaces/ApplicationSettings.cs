@@ -129,8 +129,8 @@ namespace Hercules.RobloxInterfaces
             return default;
         }
 
-        public T? Get<T>(string name) =>
-            GetAsync<T>(name).ConfigureAwait(false).GetAwaiter().GetResult();
+        public async Task<T?> Get<T>(string name) =>
+            await GetAsync<T>(name).ConfigureAwait(false);
 
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Lazy<ApplicationSettings>>> _cache = new();
 

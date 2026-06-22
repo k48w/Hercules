@@ -421,7 +421,7 @@ namespace Hercules
             else if (_appPid != 0)
             {
                 try { Process.GetProcessById(_appPid).Kill(); }
-                catch { }
+                catch (Exception ex) { App.Logger.WriteException("Bootstrapper::Cancel", ex); }
             }
 
             Dialog?.CloseBootstrapper();
@@ -651,7 +651,7 @@ namespace Hercules
 
                 _ = Task.Run(() => TryApplyPriorityAsync(_robloxProcess, LOG_IDENT, ct), ct);
 
-                try { _robloxProcess.WaitForInputIdle(1000); } catch { }
+                try { _robloxProcess.WaitForInputIdle(1000); } catch (Exception ex) { App.Logger.WriteException("Bootstrapper::WaitForLogFile", ex); }
 
                 StartCpuLimitWatcherIfNeeded();
                 RestartMemoryCleanerFromSettings();
@@ -1031,7 +1031,7 @@ namespace Hercules
                 if (cpu > CpuHighThreshold)
                     process.PriorityClass = ProcessPriorityClass.AboveNormal;
 
-                try { process.PriorityBoostEnabled = true; } catch { }
+                try { process.PriorityBoostEnabled = true; } catch (Exception ex) { App.Logger.WriteException("Bootstrapper::MonitorProcessCpu", ex); }
                 SetPriorityClass(process.Handle, PROCESS_MODE_BACKGROUND_END);
             }
             catch (Exception ex) when (!token.IsCancellationRequested)
@@ -1522,7 +1522,7 @@ namespace Hercules
 
             Directory.CreateDirectory(Paths.Downloads);
 
-            string packageUrl = Deployment.GetLocation($"/{_latestVersionGuid}-{package.Name}");
+            string packageUrl = await Deployment.GetLocation($"/{_latestVersionGuid}-{package.Name}");
             if (!packageUrl.StartsWith("https://setup.rbxcdn.com", StringComparison.OrdinalIgnoreCase))
                 packageUrl = $"https://setup.rbxcdn.com/{_latestVersionGuid}-{package.Name}";
 

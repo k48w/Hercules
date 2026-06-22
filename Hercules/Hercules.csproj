@@ -9,8 +9,8 @@
 		<UseWPF>true</UseWPF>
 		<UseWindowsForms>True</UseWindowsForms>
 		<ApplicationIcon>Hercules.ico</ApplicationIcon>
-		<Version>1.1.0.6</Version>
-		<FileVersion>1.1.0.6</FileVersion>
+		<Version>1.2.0.0</Version>
+		<FileVersion>1.2.0.0</FileVersion>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<RootNamespace>Hercules</RootNamespace>

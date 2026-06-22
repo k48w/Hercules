@@ -60,12 +60,12 @@ namespace Hercules.UI.Elements.Editor
             /// </summary>
             public static SortedDictionary<string, Type> Types { get; set; } = new();
 
-            public static void ParseSchema()
+            public static async Task ParseSchema()
             {
                 if (_schema != null)
                     return;
 
-                _schema = JsonSerializer.Deserialize<Schema>(Resource.GetString("CustomBootstrapperSchema.json").Result);
+                _schema = JsonSerializer.Deserialize<Schema>(await Resource.GetString("CustomBootstrapperSchema.json"));
                 if (_schema == null)
                     throw new Exception("Deserialised CustomBootstrapperSchema is null");
 
@@ -138,7 +138,7 @@ namespace Hercules.UI.Elements.Editor
 
         public BootstrapperEditorWindow(string name)
         {
-            CustomBootstrapperSchema.ParseSchema();
+            _ = CustomBootstrapperSchema.ParseSchema();
 
             string directory = Path.Combine(Paths.CustomThemes, name);
 

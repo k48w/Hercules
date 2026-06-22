@@ -26,7 +26,7 @@ namespace Hercules.Models.Manifest
 
         public static async Task<FileManifest> Get(string versionGuid)
         {
-            string pkgManifestUrl = Deployment.GetLocation($"/{versionGuid}-rbxManifest.txt");
+            string pkgManifestUrl = await Deployment.GetLocation($"/{versionGuid}-rbxManifest.txt");
             var pkgManifestData = await App.HttpClient.GetStringAsync(pkgManifestUrl);
 
             return new FileManifest(pkgManifestData);

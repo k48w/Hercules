@@ -580,6 +580,28 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private void FlagProfiles_Click(object sender, RoutedEventArgs e) => ShowProfilesDialog();
 
+        private async void PresetThemes_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new FFlagPresetsDialog();
+                dialog.MainTabControl.SelectedIndex = 1;
+                dialog.ShowDialog();
+
+                if (dialog.ThemeApplied)
+                {
+                    await Task.Delay(500);
+                    ReloadList();
+                    await LoadKnownFlagsAsync();
+                    UpdateExistsColumn();
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::PresetThemes_Click", ex);
+            }
+        }
+
         private void FlagFind_Click(object sender, RoutedEventArgs e) => ShowFFlagSearchDialog();
 
         private void DeleteButton_Click(object sender, RoutedEventArgs e)

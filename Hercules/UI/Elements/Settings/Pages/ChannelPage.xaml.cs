@@ -13,11 +13,25 @@ namespace Hercules.UI.Elements.Settings.Pages
 {
     public partial class ChannelPage
     {
+        private CancellationTokenSource? _autoUpdateCts;
+
         public ChannelPage()
         {
             InitializeComponent();
-            _ = AutoUpdateRobloxVersionAsync();
+            Unloaded += Page_Unloaded;
+            _autoUpdateCts = new CancellationTokenSource();
+            _ = AutoUpdateRobloxVersionAsync(_autoUpdateCts.Token);
             DataContext = new ChannelViewModel();
+        }
+
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (_autoUpdateCts != null)
+            {
+                _autoUpdateCts.Cancel();
+                _autoUpdateCts.Dispose();
+                _autoUpdateCts = null;
+            }
         }
 
         private void ToggleSwitch_Checked_1(object sender, RoutedEventArgs e)
@@ -38,9 +52,9 @@ namespace Hercules.UI.Elements.Settings.Pages
             );
         }
 
-        private async Task AutoUpdateRobloxVersionAsync()
+        private async Task AutoUpdateRobloxVersionAsync(CancellationToken ct)
         {
-            while (true)
+            while (!ct.IsCancellationRequested)
             {
                 try
                 {
@@ -50,7 +64,7 @@ namespace Hercules.UI.Elements.Settings.Pages
                 {
                     Debug.WriteLine($"[AutoUpdate] Error updating Roblox version: {ex.Message}");
                 }
-                await Task.Delay(1000);
+                await Task.Delay(1000, ct);
             }
         }
 
