@@ -24,7 +24,7 @@ namespace Hercules.UI.Elements.Dialogs
                 LocateLogFileButton.Content = Strings.Dialog_Exception_CopyLogContents;
 
             string repoUrl = $"https://github.com/{App.ProjectRepository}";
-            string wikiUrl = $"https://github.com/YOUR_GITHUB_OWNER/Hercules";
+            string wikiUrl = $"https://github.com/{App.ProjectRepository}";
 
             string title = HttpUtility.UrlEncode($"[BUG] {exception.GetType()}: {exception.Message}");
             string log = HttpUtility.UrlEncode(

@@ -10,6 +10,8 @@ namespace Hercules
     public class DarkTexturesInstaller
     {
         private static readonly string DownloadUrl = "https://cocajola.com/wp-content/uploads/2024/09/dark-textures-rivals.zip";
+        private const string DownloadSha256 = "7F95B757A3BB664950A433FE656D07FC0599F05DD0F253ACFB53B569487F5FEA";
+        private const long MaximumDownloadBytes = 32L * 1024 * 1024;
 
         public static async Task DownloadAndExtractAsync()
         {
@@ -17,11 +19,13 @@ namespace Hercules
             Directory.CreateDirectory(modsPath);
 
             string tempZip = Path.Combine(Path.GetTempPath(), "dark-textures-rivals.zip");
-            using (HttpClient client = new HttpClient())
-            {
-                var data = await client.GetByteArrayAsync(DownloadUrl);
-                await File.WriteAllBytesAsync(tempZip, data);
-            }
+            using var client = new HttpClient();
+            await SecureDownload.DownloadVerifiedAsync(
+                client,
+                new Uri(DownloadUrl),
+                tempZip,
+                DownloadSha256,
+                MaximumDownloadBytes);
             string tempExtractPath = Path.Combine(Path.GetTempPath(), "dark-textures-temp");
             if (Directory.Exists(tempExtractPath))
                 Directory.Delete(tempExtractPath, true);

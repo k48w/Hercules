@@ -90,17 +90,17 @@
                 Margin="0,0,8,0"
                 Content="{x:Static resources:Strings.Menu_About_ReportIssue}"
                 Icon="BookExclamationMark24"
-                NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules/issues" />
+                NavigateUri="https://github.com/k48w/Hercules/issues" />
             <ui:Anchor
                 Margin="0,0,8,0"
                 Content="Website"
                 Icon="Globe20"
-                NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules" />
+                NavigateUri="https://github.com/k48w/Hercules" />
             <ui:Anchor
                 Click="Anchor_Click"
                 Content="{x:Static resources:Strings.Menu_About_DiscordServer}"
                 Icon="Chat48"
-                NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules/discussions" />
+                NavigateUri="https://github.com/k48w/Hercules/discussions" />
         </WrapPanel>
 
         <TextBlock

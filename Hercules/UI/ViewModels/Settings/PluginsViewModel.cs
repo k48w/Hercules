@@ -466,6 +466,9 @@ namespace Hercules.UI.ViewModels.Settings
 
         private void AutoLoadPlugin()
         {
+            const int MaximumEntryBytes = 2 * 1024 * 1024;
+            const int MaximumEntries = 4;
+
             try
             {
                 if (!File.Exists(AutoSavePath))
@@ -475,16 +478,43 @@ namespace Hercules.UI.ViewModels.Settings
                 using var zip = new ZipInputStream(fs);
                 ZipEntry entry;
                 string xaml = null, cs = null;
+                int entryCount = 0;
 
                 while ((entry = zip.GetNextEntry()) != null)
                 {
+                    entryCount++;
+                    if (entryCount > MaximumEntries)
+                        throw new InvalidDataException("The plugin autosave contains too many entries.");
+
+                    if (entry.IsDirectory)
+                        continue;
+
+                    bool isXaml = entry.Name.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase);
+                    bool isCSharp = entry.Name.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
+                    if (!isXaml && !isCSharp)
+                        continue;
+
+                    if (entry.Size > MaximumEntryBytes)
+                        throw new InvalidDataException($"Plugin entry '{entry.Name}' exceeds the size limit.");
+
                     using var ms = new MemoryStream();
-                    zip.CopyTo(ms);
+                    byte[] buffer = new byte[81920];
+                    int total = 0;
+                    int read;
+                    while ((read = zip.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        total += read;
+                        if (total > MaximumEntryBytes)
+                            throw new InvalidDataException($"Plugin entry '{entry.Name}' exceeds the size limit.");
+
+                        ms.Write(buffer, 0, read);
+                    }
+
                     var data = Encoding.UTF8.GetString(ms.ToArray());
 
-                    if (entry.Name.EndsWith(".xaml"))
+                    if (isXaml)
                         xaml = data;
-                    else if (entry.Name.EndsWith(".cs"))
+                    else if (isCSharp)
                         cs = data;
                 }
 

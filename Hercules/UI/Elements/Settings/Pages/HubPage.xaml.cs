@@ -206,11 +206,7 @@ namespace Hercules.UI.Elements.Settings.Pages
             try
             {
                 e.Handled = true;
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = e.Uri.AbsoluteUri,
-                    UseShellExecute = true
-                });
+                Utilities.OpenWebsite(e.Uri.AbsoluteUri);
             }
             catch { }
         }

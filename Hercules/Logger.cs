@@ -1,79 +1,96 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Hercules
 {
-    public class Logger : IDisposable
+    public sealed class Logger : IDisposable
     {
-        private readonly SemaphoreSlim _semaphore = new(1, 1);
-        private FileStream? _fileStream;
-
         private const int MaxHistoryEntries = 150;
+        private readonly object _sync = new();
+        private readonly List<string> _history = new();
+        private FileStream? _fileStream;
+        private bool _disposed;
 
-        public List<string> History { get; } = new();
+        public IReadOnlyList<string> History
+        {
+            get
+            {
+                lock (_sync)
+                    return _history.ToArray();
+            }
+        }
+
         public bool Initialized { get; private set; }
         public bool NoWriteMode { get; private set; }
         public string? FileLocation { get; private set; }
 
-        public string AsDocument => string.Join('\n', History);
+        public string AsDocument
+        {
+            get
+            {
+                lock (_sync)
+                    return string.Join('\n', _history);
+            }
+        }
 
         public void Initialize(bool useTempDir = false)
         {
-            const string LOG_IDENT = "Logger::Initialize";
+            const string logIdent = "Logger::Initialize";
 
-            if (Initialized)
+            lock (_sync)
             {
-                WriteLine(LOG_IDENT, "Logger is already initialized");
-                return;
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (Initialized)
+                    return;
             }
 
-            string directory = useTempDir ? Path.Combine(Paths.TempLogs) : Path.Combine(Paths.Base, "Logs");
+            string directory = useTempDir ? Paths.TempLogs : Path.Combine(Paths.Base, "Logs");
             Directory.CreateDirectory(directory);
-
             string timestamp = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'");
-            string filename = $"{App.ProjectName}_{timestamp}.log";
-            string location = Path.Combine(directory, filename);
-
-            FileLocation = location;
+            string location = Path.Combine(directory, $"{App.ProjectName}_{timestamp}.log");
 
             try
             {
-                _fileStream = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.Read, 4096, useAsync: true);
-                Initialized = true;
+                lock (_sync)
+                {
+                    ObjectDisposedException.ThrowIf(_disposed, this);
+                    FileLocation = location;
+                    _fileStream = new FileStream(
+                        location,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.Read,
+                        4096,
+                        useAsync: false);
+                    Initialized = true;
 
-                // Flush existing history to the file
-                if (History.Count > 0)
-                    _ = WriteToLogAsync(string.Join("\r\n", History));
+                    if (_history.Count > 0)
+                        WriteToFileLocked(string.Join("\r\n", _history));
+                }
 
-                WriteLine(LOG_IDENT, $"Logger initialized at {location}");
+                WriteLine(logIdent, $"Logger initialized at {location}");
                 CleanupOldLogs(directory);
             }
             catch (UnauthorizedAccessException)
             {
-                if (NoWriteMode) return;
+                lock (_sync)
+                    NoWriteMode = true;
 
-                WriteLine(LOG_IDENT, $"No write access to {directory}");
                 Frontend.ShowMessageBox(
                     string.Format(Strings.Logger_NoWriteMode, directory),
                     System.Windows.MessageBoxImage.Warning,
-                    System.Windows.MessageBoxButton.OK
-                );
-                NoWriteMode = true;
+                    System.Windows.MessageBoxButton.OK);
             }
             catch (IOException ex)
             {
-                WriteLine(LOG_IDENT, $"Failed to initialize due to IO exception: {ex.Message}");
+                WriteLine(logIdent, $"Failed to initialize due to IO exception: {ex.Message}");
             }
         }
 
         private void CleanupOldLogs(string directory)
         {
-            if (!Paths.Initialized || !Directory.Exists(directory)) return;
+            if (!Paths.Initialized || !Directory.Exists(directory))
+                return;
 
             foreach (FileInfo log in new DirectoryInfo(directory).GetFiles())
             {
@@ -87,7 +104,6 @@ namespace Hercules
                 }
                 catch (Exception ex)
                 {
-                    WriteLine("Logger::Cleanup", $"Failed to delete log '{log.Name}'");
                     WriteException("Logger::Cleanup", ex);
                 }
             }
@@ -96,19 +112,53 @@ namespace Hercules
         private void WriteLine(string message)
         {
             string timestamp = DateTime.UtcNow.ToString("s") + "Z";
-            string sanitizedMessage = message.Replace(Paths.UserProfile, "%UserProfile%", StringComparison.InvariantCultureIgnoreCase);
+            string sanitizedMessage = message.Replace(
+                Paths.UserProfile,
+                "%UserProfile%",
+                StringComparison.InvariantCultureIgnoreCase);
             string output = $"{timestamp} {sanitizedMessage}";
 
             Debug.WriteLine(output);
-            History.Add(output);
 
-            if (History.Count > MaxHistoryEntries)
-                History.RemoveAt(0);
+            lock (_sync)
+            {
+                if (_disposed)
+                    return;
 
-            _ = WriteToLogAsync(output);
+                _history.Add(output);
+                if (_history.Count > MaxHistoryEntries)
+                    _history.RemoveAt(0);
+
+                if (Initialized && _fileStream is not null)
+                {
+                    try
+                    {
+                        WriteToFileLocked(output);
+                    }
+                    catch (IOException ex)
+                    {
+                        Debug.WriteLine($"Logger write failed: {ex.Message}");
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Shutdown raced with a final log entry.
+                    }
+                }
+            }
         }
 
-        public void WriteLine(string identifier, string message) => WriteLine($"[{identifier}] {message}");
+        private void WriteToFileLocked(string message)
+        {
+            if (_fileStream is null)
+                return;
+
+            byte[] buffer = Encoding.UTF8.GetBytes(message + "\r\n");
+            _fileStream.Write(buffer, 0, buffer.Length);
+            _fileStream.Flush();
+        }
+
+        public void WriteLine(string identifier, string message) =>
+            WriteLine($"[{identifier}] {message}");
 
         public void WriteException(string identifier, Exception ex)
         {
@@ -116,32 +166,18 @@ namespace Hercules
             WriteLine($"[{identifier}] ({hresult}) {ex}");
         }
 
-        private async Task WriteToLogAsync(string message)
-        {
-            if (!Initialized || _fileStream == null) return;
-
-            byte[] buffer = Encoding.UTF8.GetBytes(message + "\r\n");
-
-            try
-            {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
-                await _fileStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-                await _fileStream.FlushAsync().ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-                // Stream might be disposed during shutdown
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        }
-
         public void Dispose()
         {
-            _fileStream?.Dispose();
-            _semaphore.Dispose();
+            lock (_sync)
+            {
+                if (_disposed)
+                    return;
+
+                _disposed = true;
+                _fileStream?.Dispose();
+                _fileStream = null;
+                Initialized = false;
+            }
         }
     }
 }

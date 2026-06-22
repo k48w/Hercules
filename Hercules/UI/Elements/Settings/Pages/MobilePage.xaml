@@ -11,13 +11,13 @@
             <TextBlock
                 FontSize="14"
                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                Text="Set up Chrome Remote Desktop directly inside Hercules for Mobile/Tablet Support." />
+                Text="Use Chrome Remote Desktop for Mobile/Tablet Support. Hercules never downloads or executes third-party installers automatically." />
         </StackPanel>
 
         <ui:Card x:Name="InstallerCard" Margin="0,0,0,16" Padding="24" Width="400">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <ProgressBar x:Name="InstallerProgressBar" Width="350" Height="20" Minimum="0" Maximum="100" Value="0"/>
-                <TextBlock x:Name="StatusText" Margin="0,8,0,0" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Preparing installer..." TextAlignment="Center"/>
+                <TextBlock x:Name="StatusText" Margin="0,8,0,12" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Checking installation..." TextAlignment="Center" TextWrapping="Wrap"/>
+                <ui:Button Content="Open official setup" Appearance="Primary" Click="OpenRemoteDesktopSetup_Click" />
             </StackPanel>
         </ui:Card>
 
@@ -30,7 +30,7 @@
                            TextWrapping="Wrap"
                            Width="500"/>
                 <TextBlock FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
-                           Text="Chrome Remote Desktop will now open in your default browser." 
+                           Text="Chrome Remote Desktop is installed. Use the official website to configure or access your computer."
                            TextAlignment="Center"
                            TextWrapping="Wrap"
                            Width="500"/>

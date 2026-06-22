@@ -27,19 +27,19 @@
         </TextBlock>
 
         <TextBlock Margin="0,8,0,0" FontSize="14" TextWrapping="Wrap">
-            <Hyperlink NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
+            <Hyperlink NavigateUri="https://github.com/k48w/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
                 Hercules Website
             </Hyperlink>
         </TextBlock>
 
         <TextBlock Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap">
-            <Hyperlink NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
+            <Hyperlink NavigateUri="https://github.com/k48w/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
                 Roblox/Hercules Mods
             </Hyperlink>
         </TextBlock>
 
         <TextBlock Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap">
-            <Hyperlink NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
+            <Hyperlink NavigateUri="https://github.com/k48w/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
                 Crosshairs
             </Hyperlink>
         </TextBlock>
@@ -49,7 +49,7 @@
         </TextBlock>
 
         <TextBlock Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap">
-            <Hyperlink NavigateUri="https://github.com/YOUR_GITHUB_OWNER/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
+            <Hyperlink NavigateUri="https://github.com/k48w/Hercules" RequestNavigate="Hyperlink_RequestNavigate">
                 Documentation
             </Hyperlink>
         </TextBlock>

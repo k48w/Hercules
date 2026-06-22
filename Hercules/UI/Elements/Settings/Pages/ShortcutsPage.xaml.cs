@@ -164,17 +164,23 @@ namespace Hercules.UI.Elements.Settings.Pages
                         UseShellExecute = true
                     });
 
-                    await Task.Run(() =>
+                    Process? robloxProcess = null;
+                    DateTime deadline = DateTime.UtcNow.AddMinutes(1);
+                    while (robloxProcess is null && DateTime.UtcNow < deadline)
                     {
-                        Process? robloxProcess = null;
-                        while (robloxProcess == null)
-                        {
-                            robloxProcess = Process.GetProcessesByName("RobloxPlayerBeta").FirstOrDefault();
-                            Thread.Sleep(500);
-                        }
+                        robloxProcess = Process.GetProcessesByName("RobloxPlayerBeta").FirstOrDefault();
+                        if (robloxProcess is null)
+                            await Task.Delay(500);
+                    }
 
-                        Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
-                    });
+                    if (robloxProcess is null)
+                    {
+                        App.Logger.WriteLine("ShortcutsPage::BtnLaunchGame_Click", "Roblox did not start within one minute; Hercules will remain open.");
+                        return;
+                    }
+
+                    robloxProcess.Dispose();
+                    Application.Current.Shutdown();
                 }
                 catch (Exception ex)
                 {
@@ -283,7 +289,14 @@ namespace Hercules.UI.Elements.Settings.Pages
 
                 string iconPath = Path.Combine(folder, $"{baseName}.ico");
 
-                var data = await _httpClient.GetByteArrayAsync(imageUrl);
+                if (!Uri.TryCreate(imageUrl, UriKind.Absolute, out Uri? imageUri))
+                    throw new InvalidDataException("The icon URL is invalid.");
+
+                var data = await SecureDownload.DownloadBytesBoundedAsync(
+                    _httpClient,
+                    imageUri,
+                    10L * 1024 * 1024,
+                    "image/");
                 using var ms = new MemoryStream(data);
                 using var bitmap = new SD.Bitmap(ms);
                 using var resized = new SD.Bitmap(bitmap, new SD.Size(64, 64));

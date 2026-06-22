@@ -781,7 +781,11 @@ namespace Hercules
                 if (existing != null) { WaitForFleasionAdmin(existing); return; }
 
                 string path = Path.Combine(Paths.Base, "Fleasion", "Fleasion.exe");
-                if (!File.Exists(path)) return;
+                if (!UI.Elements.Settings.Pages.ExtensionViewModel.IsFleasionVerified(path))
+                {
+                    App.Logger.WriteLine("LaunchHandler", "Fleasion was not launched because its integrity check failed.");
+                    return;
+                }
 
                 Process? proc = null;
                 try
@@ -2081,7 +2085,14 @@ namespace Hercules
 
                 try
                 {
-                    byte[] data = await http.GetByteArrayAsync(githubBase + hash);
+                    byte[] data = await SecureDownload.DownloadBytesBoundedAsync(
+                        http,
+                        new Uri(githubBase + hash),
+                        5L * 1024 * 1024);
+                    string actualHash = Convert.ToHexString(
+                        System.Security.Cryptography.MD5.HashData(data));
+                    if (!actualHash.Equals(hash, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException($"Skybox asset integrity check failed for {hash}.");
                     if (File.Exists(dest))
                         File.SetAttributes(dest, FileAttributes.Normal);
                     await File.WriteAllBytesAsync(dest, data);

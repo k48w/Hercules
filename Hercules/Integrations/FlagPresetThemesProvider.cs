@@ -5,6 +5,9 @@ namespace Hercules.Integrations;
 
 public static class FlagPresetThemesProvider
 {
+    private const long MaximumThemeFileBytes = 4L * 1024 * 1024;
+    private const int MaximumCustomThemes = 500;
+    private const int MaximumFlagsPerTheme = 5_000;
     private static readonly string ThemesFilePath = Path.Combine(Paths.Base, "flag_preset_themes.json");
     private static List<FlagPresetTheme>? _cachedThemes;
 
@@ -107,13 +110,22 @@ public static class FlagPresetThemesProvider
         {
             if (File.Exists(ThemesFilePath))
             {
+                if (new FileInfo(ThemesFilePath).Length > MaximumThemeFileBytes)
+                    throw new InvalidDataException("Custom theme file exceeds the 4 MB limit.");
+
                 var json = File.ReadAllText(ThemesFilePath);
                 var custom = JsonSerializer.Deserialize<List<FlagPresetTheme>>(json);
                 if (custom != null)
+                {
+                    ValidateCustomThemes(custom);
                     themes.AddRange(custom);
+                }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            App.Logger.WriteException("FlagPresetThemesProvider::GetAllThemes", ex);
+        }
 
         _cachedThemes = themes;
         return themes;
@@ -121,23 +133,63 @@ public static class FlagPresetThemesProvider
 
     public static void SaveCustomThemes(List<FlagPresetTheme> customThemes)
     {
+        ValidateCustomThemes(customThemes);
+
         try
         {
             var dir = Path.GetDirectoryName(ThemesFilePath)!;
             Directory.CreateDirectory(dir);
             var json = JsonSerializer.Serialize(customThemes, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ThemesFilePath, json);
+            string temporaryPath = ThemesFilePath + $".{Guid.NewGuid():N}.tmp";
+            try
+            {
+                File.WriteAllText(temporaryPath, json);
+                File.Move(temporaryPath, ThemesFilePath, overwrite: true);
+            }
+            finally
+            {
+                File.Delete(temporaryPath);
+            }
             _cachedThemes = null;
         }
-        catch { }
+        catch (Exception ex)
+        {
+            App.Logger.WriteException("FlagPresetThemesProvider::SaveCustomThemes", ex);
+            throw;
+        }
     }
+
+    public static void InvalidateCache() => _cachedThemes = null;
 
     public static void ApplyTheme(FlagPresetTheme theme)
     {
+        ArgumentNullException.ThrowIfNull(theme);
+        ValidateTheme(theme);
+
         foreach (var kvp in theme.Flags)
         {
             App.FastFlags.Prop[kvp.Key] = kvp.Value;
         }
         App.FastFlags.Save();
+    }
+
+    private static void ValidateCustomThemes(List<FlagPresetTheme> themes)
+    {
+        ArgumentNullException.ThrowIfNull(themes);
+        if (themes.Count > MaximumCustomThemes)
+            throw new InvalidDataException($"A maximum of {MaximumCustomThemes} custom themes is allowed.");
+
+        foreach (FlagPresetTheme theme in themes)
+            ValidateTheme(theme);
+    }
+
+    private static void ValidateTheme(FlagPresetTheme theme)
+    {
+        if (string.IsNullOrWhiteSpace(theme.Name))
+            throw new InvalidDataException("Theme name cannot be empty.");
+        if (theme.Flags is null || theme.Flags.Count > MaximumFlagsPerTheme)
+            throw new InvalidDataException($"Theme '{theme.Name}' contains too many flags.");
+        if (theme.Flags.Keys.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidDataException($"Theme '{theme.Name}' contains an empty flag name.");
     }
 }

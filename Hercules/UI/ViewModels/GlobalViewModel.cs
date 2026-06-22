@@ -12,7 +12,7 @@ namespace Hercules.UI.ViewModels
             if (location is null)
                 return;
 
-            Utilities.ShellExecute(location);
+            Utilities.OpenWebsite(location);
         }
     }
 }

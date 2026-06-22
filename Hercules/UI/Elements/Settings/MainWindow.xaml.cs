@@ -1364,7 +1364,7 @@ namespace Hercules.UI.Elements.Settings
             new DiscordRPC.Button
             {
                 Label = "Discord",
-                Url = "https://github.com/YOUR_GITHUB_OWNER/Hercules/discussions"
+                Url = $"https://github.com/{App.ProjectRepository}/discussions"
             },
             new DiscordRPC.Button
             {

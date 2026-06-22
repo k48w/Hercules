@@ -10,6 +10,10 @@ namespace Hercules.UI.Elements.Settings.Pages
 {
     public class ExtensionViewModel
     {
+        private static readonly Uri FleasionDownloadUri = new(
+            "https://github.com/fleasion/Fleasion/releases/download/v2.1.0/Fleasion-v2.1.0.exe");
+        private const string FleasionSha256 = "573B42CA53EFBCD40BD805854001ED08D565BB147A646C05AC53B9FF0C8D98F0";
+        private const long FleasionMaximumBytes = 256L * 1024 * 1024;
         private static readonly HttpClient client = new HttpClient();
         private static readonly string fleasionDir = Path.Combine(Paths.Base, "Fleasion");
         private static readonly SemaphoreSlim _downloadLock = new SemaphoreSlim(1, 1);
@@ -22,7 +26,7 @@ namespace Hercules.UI.Elements.Settings.Pages
             if (App.Settings.Prop.Fleasion)
             {
                 string exePath = Path.Combine(fleasionDir, "Fleasion.exe");
-                if (!File.Exists(exePath))
+                if (!IsFleasionVerified(exePath))
                     _ = Task.Run(() => DownloadFleasion());
             }
             else
@@ -61,6 +65,9 @@ namespace Hercules.UI.Elements.Settings.Pages
         {
             _downloadCts?.Cancel();
         }
+
+        internal static bool IsFleasionVerified(string path) =>
+            SecureDownload.HasExpectedSha256(path, FleasionSha256);
 
         private void ReplaceFileSafely(string sourcePath, string targetPath)
         {
@@ -147,34 +154,16 @@ namespace Hercules.UI.Elements.Settings.Pages
                     return;
                 }
 
-                client.DefaultRequestHeaders.Clear();
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Hercules");
+                if (!client.DefaultRequestHeaders.UserAgent.Any())
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Hercules");
 
-                using HttpResponseMessage response = await client.GetAsync(
-                    "https://github.com/fleasion/Fleasion/releases/latest/download/Fleasion.exe",
-                    HttpCompletionOption.ResponseHeadersRead, ct);
-
-                response.EnsureSuccessStatusCode();
-
-                using Stream stream = await response.Content.ReadAsStreamAsync(ct);
-                using FileStream fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-                long totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                long totalRead = 0L;
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-
-                while ((bytesRead = await stream.ReadAsync(buffer, ct)) > 0)
-                {
-                    await fs.WriteAsync(buffer, 0, bytesRead, ct);
-                    totalRead += bytesRead;
-
-                    if (totalBytes > 0)
-                    {
-                        double percent = (double)totalRead / totalBytes * 100;
-                        OnProgressChanged?.Invoke($"Fleasion... {percent:0}%", true);
-                    }
-                }
+                await SecureDownload.DownloadVerifiedAsync(
+                    client,
+                    FleasionDownloadUri,
+                    outputPath,
+                    FleasionSha256,
+                    FleasionMaximumBytes,
+                    ct);
 
                 OnProgressChanged?.Invoke("Complete!", true);
             }

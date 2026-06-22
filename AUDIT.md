@@ -1,35 +1,47 @@
-# Hercules audit
+# Hercules — auditoria técnica
 
-Audit date: 2026-06-22
+Data: 2026-06-22
 
-## Completed
+## Resultado desta revisão
 
-- Rebranded product namespaces, assembly, solution, project, executable, themes, assets, UI text, local data paths, and registry identifiers from Voidstrap to Hercules.
-- Preserved upstream Bloxstrap, Fishstrap, WPF UI, and third-party attribution.
-- Removed a machine-specific `DiscordRPC.dll` reference; the existing NuGet dependency is now the single source.
-- Added an explicit Newtonsoft.Json dependency for source files that previously relied on an accidental transitive package reference.
-- Upgraded SharpCompress to 0.49.1 to remove the vulnerable 0.47.0 dependency and removed redundant framework package references.
-- Added the missing persisted SwiftTunnel settings that previously caused 19 compilation errors.
-- Removed repeated MSBuild resource declarations and corrected the packaged license path.
-- Stopped embedding developer computer and user names in release metadata and user-agent strings.
-- Aligned the target framework, manifest, runtime guard, and publish profiles on Windows 10 version 1809 or newer.
-- Replaced machine-specific publish folders with repository-relative output paths.
-- Fixed duplicate `MusicPlayerViewModel` definitions that prevented compilation and normalized source filenames containing trailing spaces.
-- Consolidated duplicated GitHub release/asset models shared by the Hub and Releases pages.
-- Hardened automatic updates: HTTPS only, bounded download size, exact asset name, release tag consistency, mandatory SHA-256 verification, rollback on replacement failure, and a single restart path.
-- Corrected the malformed GitHub repository identifier that produced double slashes in API URLs.
-- Replaced the unrelated contribution-animation workflow with Windows CI that restores and builds Hercules using .NET 10.
+- Builds Debug e Release concluídos com zero erros.
+- A consulta atual ao índice oficial do NuGet não encontrou pacotes vulneráveis, incluindo dependências transitivas.
+- Nenhum arquivo de workflow ou configuração do GitHub foi alterado nesta revisão.
+- Importação de configurações agora valida tamanho, formato e conteúdo, grava atomicamente e restaura todos os arquivos se qualquer etapa falhar.
+- Extração de ZIPs bloqueia caminhos fora da pasta de destino (Zip Slip).
+- Downloads de executáveis e pacotes sensíveis usam HTTPS, limite de tamanho e SHA-256 fixo.
+- Fleasion e NVIDIA Profile Inspector são verificados novamente antes da execução, inclusive quando já existem no disco.
+- Downloads de notícias, ícones, músicas e recursos de skybox possuem limites de memória/disco e validação básica de conteúdo ou integridade.
+- A página Mobile não baixa nem executa mais instaladores de terceiros automaticamente; abre apenas a página oficial após ação explícita.
+- Temas/XAML remotos mutáveis deixaram de ser baixados automaticamente.
+- Logs não registram mais query strings OAuth, tokens ou e-mail da conta.
+- Backups rejeitam nomes com travessia de diretório.
+- Logger, polling de canais e espera por processos foram corrigidos para evitar corridas, descarte incorreto e esperas infinitas.
+- Autosave de plugins limita quantidade e tamanho das entradas do ZIP.
+- Abertura de links externos restringe links web a HTTP/HTTPS e passa argumentos ao fallback do Windows sem concatenação insegura.
 
-## Release blockers
+## Verificação
 
-- Configure the trusted GitHub owner in `Hercules/App.xaml.cs`; updates must remain disabled while the placeholder is present.
-- Install the .NET 10 SDK and run restore/build/publish. This workstation currently has only the .NET host and cannot compile the solution.
-- Replace the inherited Hercules artwork if a new visual identity is desired; filenames and resource identity are already migrated.
+- `dotnet build Hercules/Hercules.csproj --no-restore`: aprovado, 0 erros.
+- `dotnet build Hercules/Hercules.csproj -c Release --no-restore`: aprovado, 0 erros.
+- `git diff --check`: aprovado após a correção de whitespace.
+- O projeto ainda emite 619 warnings no build Release. Muitos vêm do `wpfui` incorporado; os avisos restantes incluem nulabilidade, membros não usados e chamadas assíncronas não aguardadas no código legado.
+- Não existe projeto de testes automatizados na solução; isso continua sendo a maior lacuna de validação.
 
-## Follow-up recommendations
+## Próximas funções sugeridas
 
-- Extend CI with unit tests and signed release publishing once release credentials are configured.
-- Sign `Hercules.exe` with an Authenticode certificate in addition to SHA-256 release verification.
-- Add unit tests around version comparison, path validation, JSON migrations, and updater rejection cases.
-- Gradually replace broad empty `catch` blocks with scoped exception handling and structured logging.
-- Review optional integrations that execute external programs or modify GPU/Roblox settings under a least-privilege policy.
+1. Central de integridade: verificar arquivos, integrações e configurações instaladas, com botão de reparo seguro.
+2. Backup versionado: snapshots antes de mudanças em mods/FastFlags e restauração com comparação visual.
+3. Diagnóstico exportável: relatório sanitizado de versão, arquivos ausentes, permissões, rede e falhas recentes.
+4. Catálogo assinado de extensões: manifesto com hash, versão, origem e permissões antes da instalação.
+5. Perfis por jogo/conta: FastFlags, mods e atalhos aplicados automaticamente por contexto.
+6. Modo seguro: iniciar sem plugins, integrações, temas personalizados ou modificações para recuperar instalações quebradas.
+7. Atualizador com canal e rollback: estável/beta, assinatura do artefato e retorno automático à versão anterior.
+8. Suite de testes: caminhos de arquivo, importação transacional, rejeição de downloads adulterados e migração de JSON.
+
+## Débito técnico restante
+
+- Reduzir warnings gradualmente, começando pelas chamadas assíncronas não aguardadas e possíveis nulos em caminhos de inicialização.
+- Substituir `catch` vazios por exceções específicas e logs sanitizados.
+- Isolar ou atualizar o fork incorporado de `wpfui` para que os warnings de terceiros não ocultem regressões do Hercules.
+- Assinar os executáveis publicados com Authenticode; hash fixo protege downloads conhecidos, mas não substitui assinatura de código.

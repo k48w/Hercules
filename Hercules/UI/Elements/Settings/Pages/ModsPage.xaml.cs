@@ -98,10 +98,7 @@ namespace Hercules.UI.Elements.Settings.Pages
                             if (string.IsNullOrEmpty(entry.FullName) || entry.FullName.EndsWith("/") || entry.FullName.EndsWith("\\"))
                                 continue;
 
-                            string destinationPath = Path.GetFullPath(Path.Combine(targetDir, entry.FullName));
-
-                            if (!destinationPath.StartsWith(Path.GetFullPath(targetDir), StringComparison.OrdinalIgnoreCase))
-                                throw new IOException($"Entry {entry.FullName} is trying to extract outside of {targetDir}");
+                            string destinationPath = SafeArchivePath.Resolve(targetDir, entry.FullName);
 
                             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
                             entry.ExtractToFile(destinationPath, overwrite: true);

@@ -1157,12 +1157,14 @@ private void UpdateFilteredLibrary()
                         Status = $"Downloading {track.Title}...";
                         OnPropertyChanged(nameof(Status));
 
-                        using var response = await client.GetAsync(fixedUrl, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
+                        if (!Uri.TryCreate(fixedUrl, UriKind.Absolute, out Uri? downloadUri))
+                            throw new InvalidDataException("The track URL is invalid.");
 
-                        await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                        await using var file = File.Create(localPath);
-                        await stream.CopyToAsync(file).ConfigureAwait(false);
+                        await SecureDownload.DownloadToFileBoundedAsync(
+                            client,
+                            downloadUri,
+                            localPath,
+                            256L * 1024 * 1024).ConfigureAwait(false);
 
                         Application.Current.Dispatcher.Invoke(() =>
                         {

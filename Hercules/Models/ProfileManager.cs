@@ -17,6 +17,11 @@ namespace Hercules.Integrations
     {
         private const string NVIDIA_INSPECTOR_URL =
             "https://github.com/Orbmu2k/nvidiaProfileInspector/releases/download/2.4.0.34/nvidiaProfileInspector.zip";
+        private const string NVIDIA_INSPECTOR_SHA256 =
+            "7EF9DD7F3ED8F4C6689C32728BE483108824FC56698F287C6AF63A07D80ABD93";
+        private const string NVIDIA_INSPECTOR_EXE_SHA256 =
+            "74CD2D5B03AFB5876052DE79F4AEE9835EBB296F18363C705EB850549ED9EA6F";
+        private const long NVIDIA_INSPECTOR_MAX_BYTES = 32L * 1024 * 1024;
 
         private static readonly string InspectorDir =
             Path.Combine(Paths.Integrations, "Nvidia"); // was too lazy to add auto-update
@@ -228,8 +233,10 @@ namespace Hercules.Integrations
 
         private static async Task<bool> EnsureInspectorDownloaded()
         {
-            if (File.Exists(InspectorExe))
+            if (SecureDownload.HasExpectedSha256(InspectorExe, NVIDIA_INSPECTOR_EXE_SHA256))
                 return true;
+
+            SafeDelete(InspectorExe);
 
             string zipPath = Path.Combine(InspectorDir, "nvidiaProfileInspector.zip");
             string tempZipPath = Path.Combine(InspectorDir, "nvidiaProfileInspector.tmp.zip");
@@ -241,27 +248,21 @@ namespace Hercules.Integrations
                 SafeDelete(zipPath);
                 SafeDelete(tempZipPath);
 
-                using (var response = await App.HttpClient.GetAsync(
-                    NVIDIA_INSPECTOR_URL,
-                    System.Net.Http.HttpCompletionOption.ResponseHeadersRead))
-                {
-                    response.EnsureSuccessStatusCode();
-
-                    await using var fs = new FileStream(
-                        tempZipPath,
-                        FileMode.Create,
-                        FileAccess.Write,
-                        FileShare.None);
-
-                    await response.Content.CopyToAsync(fs);
-                    await fs.FlushAsync(CancellationToken.None);
-                }
+                await SecureDownload.DownloadVerifiedAsync(
+                    App.HttpClient,
+                    new Uri(NVIDIA_INSPECTOR_URL),
+                    tempZipPath,
+                    NVIDIA_INSPECTOR_SHA256,
+                    NVIDIA_INSPECTOR_MAX_BYTES);
 
                 await WaitForFileUnlock(tempZipPath);
                 ZipFile.ExtractToDirectory(tempZipPath, InspectorDir, true);
                 SafeDelete(tempZipPath);
 
-                return File.Exists(InspectorExe);
+                if (!SecureDownload.HasExpectedSha256(InspectorExe, NVIDIA_INSPECTOR_EXE_SHA256))
+                    throw new InvalidDataException("The extracted NVIDIA Profile Inspector executable failed integrity validation.");
+
+                return true;
             }
             catch (Exception ex)
             {

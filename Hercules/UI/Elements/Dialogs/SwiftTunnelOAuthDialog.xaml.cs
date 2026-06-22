@@ -69,7 +69,8 @@ namespace Hercules.UI.Elements.Dialogs
 
         private void OAuthWebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
         {
-            App.Logger.WriteLine("SwiftTunnelOAuthDialog", $"Navigation starting: {e.Uri}");
+            if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var navigationUri))
+                App.Logger.WriteLine("SwiftTunnelOAuthDialog", $"Navigation starting: {navigationUri.Scheme}://{navigationUri.Authority}{navigationUri.AbsolutePath}");
 
             // Check if this is the callback URL
             if (e.Uri.StartsWith(RedirectUrl))

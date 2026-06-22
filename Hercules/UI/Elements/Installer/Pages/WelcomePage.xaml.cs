@@ -13,11 +13,8 @@ namespace Hercules.UI.Elements.Installer.Pages
 
         public WelcomePage()
         {
-                if (Window.GetWindow(this) is MainWindow window)
-                    window.SetButtonEnabled("next", true);
-
-            DataContext = _viewModel;
             InitializeComponent();
+            DataContext = _viewModel;
         }
 
         private void UiPage_Loaded(object sender, RoutedEventArgs e)
@@ -28,16 +25,16 @@ namespace Hercules.UI.Elements.Installer.Pages
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            Utilities.OpenWebsite(e.Uri.AbsoluteUri);
             e.Handled = true;
         }
         private void DonateButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://github.com/YOUR_GITHUB_OWNER/Hercules") { UseShellExecute = true });
+            Utilities.OpenWebsite($"https://github.com/{App.ProjectRepository}");
         }
         private void ContributorsButton_Click(object sender, System.Windows.RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo("https://github.com/YOUR_GITHUB_OWNER/Hercules") { UseShellExecute = true });
+            Utilities.OpenWebsite($"https://github.com/{App.ProjectRepository}");
         }
     }
 }

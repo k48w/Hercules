@@ -48,8 +48,6 @@ namespace Hercules.UI.Elements.Base
             if (isCustom)
             {
                 var customXamlPath = Path.Combine(Paths.Base, "Custom.xaml");
-                var customXshdPath = Path.Combine(Paths.Base, "Editor-Theme-Custom.xshd");
-
                 if (File.Exists(customXamlPath))
                 {
                     try
@@ -66,32 +64,6 @@ namespace Hercules.UI.Elements.Base
                     }
                 }
 
-                if (!File.Exists(customXshdPath))
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        var url = "https://raw.githubusercontent.com/KloBraticc/HerculesCustomThemes/main/Editor-Theme-Custom.xshd";
-                        // fixes color issues and crap XSHD
-                        try
-                        {
-                            using var http = new HttpClient();
-                            var xshdContent = await http.GetStringAsync(url);
-
-                            Directory.CreateDirectory(Paths.Base);
-                            await File.WriteAllTextAsync(customXshdPath, xshdContent);
-                        }
-                        catch (Exception ex)
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                Frontend.ShowMessageBox(
-                                    $"Failed to download Custom XSHD file:\n{ex.Message}",
-                                    MessageBoxImage.Warning
-                                );
-                            });
-                        }
-                    });
-                }
             }
 
             if (themeDict == null)

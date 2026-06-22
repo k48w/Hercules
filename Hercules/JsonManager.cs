@@ -67,7 +67,8 @@ namespace Hercules
                     }
                 }
 
-                Save();
+                // Preserve the invalid file (and its .bak copy) for recovery.
+                // Defaults remain in memory until the user explicitly saves again.
             }
         }
 
@@ -87,7 +88,7 @@ namespace Hercules
                 try
                 {
                     string json = JsonSerializer.Serialize(Prop, new JsonSerializerOptions { WriteIndented = true });
-                    File.WriteAllText(FileLocation, json);
+                    WriteTextAtomically(FileLocation, json);
 
                     LastFileHash = SafeGetFileHash(FileLocation);
                     App.Logger.WriteLine(LOG_IDENT, "Save complete!");
@@ -153,9 +154,9 @@ namespace Hercules
 
                 Directory.CreateDirectory(baseDir);
 
-                string filePath = Path.Combine(baseDir, name);
+                string filePath = GetSafeBackupPath(baseDir, name);
                 string json = JsonSerializer.Serialize(Prop, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(filePath, json);
+                WriteTextAtomically(filePath, json);
 
                 App.Logger.WriteLine(LOGGER_STRING, $"Backup '{name}' saved successfully.");
             }
@@ -175,7 +176,7 @@ namespace Hercules
                 if (string.IsNullOrWhiteSpace(name))
                     return;
 
-                string filePath = Path.Combine(baseDir, name);
+                string filePath = GetSafeBackupPath(baseDir, name);
 
                 if (!File.Exists(filePath))
                     throw new FileNotFoundException($"Backup file '{name}' not found.");
@@ -209,6 +210,39 @@ namespace Hercules
             {
                 App.Logger.WriteException(LOGGER_STRING, ex);
                 Frontend.ShowMessageBox($"Failed to load backup:\n{ex.Message}", MessageBoxImage.Error);
+            }
+        }
+
+        private static string GetSafeBackupPath(string baseDirectory, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name) ||
+                !string.Equals(name, Path.GetFileName(name), StringComparison.Ordinal) ||
+                name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                throw new ArgumentException("Backup name must be a plain file name.", nameof(name));
+            }
+
+            string root = Path.GetFullPath(baseDirectory);
+            string rootPrefix = Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar;
+            string candidate = Path.GetFullPath(Path.Combine(root, name));
+            if (!candidate.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Backup path escapes the backup directory.");
+
+            return candidate;
+        }
+
+        private static void WriteTextAtomically(string path, string content)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            string temporaryPath = path + $".{Guid.NewGuid():N}.tmp";
+            try
+            {
+                File.WriteAllText(temporaryPath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                File.Move(temporaryPath, path, overwrite: true);
+            }
+            finally
+            {
+                File.Delete(temporaryPath);
             }
         }
     }

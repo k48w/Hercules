@@ -23,7 +23,6 @@ namespace Hercules.UI.Elements.Settings.Pages
 
             _appearanceViewModel = new AppearanceViewModel();
             DataContext = _appearanceViewModel;
-            _ = DownloadCustomThemeAsync();
         }
 
         #region Existing Theme Logic
@@ -106,33 +105,5 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         #endregion
 
-        #region Custom Theme Download
-
-        private async Task DownloadCustomThemeAsync()
-        {
-            var url = "https://raw.githubusercontent.com/KloBraticc/HerculesCustomThemes/main/Custom.xaml";
-            var destinationPath = Path.Combine(Paths.Base, "Custom.xaml");
-
-            try
-            {
-                if (!File.Exists(destinationPath))
-                {
-                    using var http = new HttpClient();
-                    var xaml = await http.GetStringAsync(url);
-
-                    Directory.CreateDirectory(Paths.Base);
-                    await File.WriteAllTextAsync(destinationPath, xaml);
-                }
-            }
-            catch (Exception ex)
-            {
-                Frontend.ShowMessageBox(
-                    $"Failed to download custom theme:\n{ex.Message}",
-                    MessageBoxImage.Warning
-                );
-            }
-        }
-
-        #endregion
     }
 }

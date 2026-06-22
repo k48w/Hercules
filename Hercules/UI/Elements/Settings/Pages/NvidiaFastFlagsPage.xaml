@@ -35,7 +35,7 @@
 
             <ui:CardAction
             Command="models:GlobalViewModel.OpenWebpageCommand"
-            CommandParameter="https://github.com/YOUR_GITHUB_OWNER/Hercules"
+            CommandParameter="https://github.com/k48w/Hercules"
             Margin="0,8,0,0"
             Icon="Book24">
                 <StackPanel>

@@ -102,7 +102,7 @@ namespace Hercules.Integrations.SwiftTunnel
         /// </summary>
         public async Task<(bool Success, string? Error)> SignInAsync(string email, string password)
         {
-            App.Logger.WriteLine("SwiftTunnelAuthManager", $"Signing in as {email}...");
+            App.Logger.WriteLine("SwiftTunnelAuthManager", "Signing in...");
 
             var (session, error) = await _apiClient.SignInAsync(email, password);
 

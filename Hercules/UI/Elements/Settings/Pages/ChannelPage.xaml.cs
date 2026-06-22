@@ -18,10 +18,18 @@ namespace Hercules.UI.Elements.Settings.Pages
         public ChannelPage()
         {
             InitializeComponent();
+            Loaded += Page_Loaded;
             Unloaded += Page_Unloaded;
+            DataContext = new ChannelViewModel();
+        }
+
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_autoUpdateCts is not null)
+                return;
+
             _autoUpdateCts = new CancellationTokenSource();
             _ = AutoUpdateRobloxVersionAsync(_autoUpdateCts.Token);
-            DataContext = new ChannelViewModel();
         }
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
@@ -54,17 +62,25 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async Task AutoUpdateRobloxVersionAsync(CancellationToken ct)
         {
-            while (!ct.IsCancellationRequested)
+            try
             {
-                try
+                while (!ct.IsCancellationRequested)
                 {
-                    await GetRobloxVersionAPPAsync();
+                    try
+                    {
+                        await GetRobloxVersionAPPAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[AutoUpdate] Error updating Roblox version: {ex.Message}");
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[AutoUpdate] Error updating Roblox version: {ex.Message}");
-                }
-                await Task.Delay(1000, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Expected when navigating away from the page.
             }
         }
 
@@ -292,7 +308,7 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private void DonateButton_Click(object sender, RoutedEventArgs e)
         {
-            string url = "https://github.com/YOUR_GITHUB_OWNER/Hercules";
+            string url = $"https://github.com/{App.ProjectRepository}";
             try
             {
                 ProcessStartInfo psi = new ProcessStartInfo

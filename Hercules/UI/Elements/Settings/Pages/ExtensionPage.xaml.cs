@@ -36,7 +36,7 @@ namespace Hercules.UI.Elements.Settings.Pages
         {
             string fleasionDir = Path.Combine(Paths.Base, "Fleasion");
             string fleasionExe = Path.Combine(fleasionDir, "Fleasion.exe");
-            if (Directory.Exists(fleasionDir) && File.Exists(fleasionExe))
+            if (Directory.Exists(fleasionDir) && ExtensionViewModel.IsFleasionVerified(fleasionExe))
             {
                 try
                 {
@@ -53,7 +53,7 @@ namespace Hercules.UI.Elements.Settings.Pages
             }
             else
             {
-                Frontend.ShowMessageBox("Fleasion Extension is not Enabled/Installed");
+                Frontend.ShowMessageBox("Fleasion is not installed or failed its integrity check. Disable and enable the extension to download a verified copy.");
             }
         }
 

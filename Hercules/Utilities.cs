@@ -9,6 +9,17 @@ namespace Hercules
 {
     static class Utilities
     {
+        public static void OpenWebsite(string website)
+        {
+            if (!Uri.TryCreate(website, UriKind.Absolute, out Uri? uri) ||
+                (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            {
+                throw new ArgumentException("Only HTTP and HTTPS links are allowed.", nameof(website));
+            }
+
+            ShellExecute(uri.AbsoluteUri);
+        }
+
         public static void ShellExecute(string website)
         {
             try
@@ -24,11 +35,14 @@ namespace Hercules
                 if (ex.NativeErrorCode != (int)ErrorCode.CO_E_APPNOTFOUND)
                     throw;
 
-                Process.Start(new ProcessStartInfo
+                var fallback = new ProcessStartInfo
                 {
                     FileName = "rundll32.exe",
-                    Arguments = $"shell32,OpenAs_RunDLL {website}"
-                });
+                    UseShellExecute = false
+                };
+                fallback.ArgumentList.Add("shell32,OpenAs_RunDLL");
+                fallback.ArgumentList.Add(website);
+                Process.Start(fallback);
             }
         }
 

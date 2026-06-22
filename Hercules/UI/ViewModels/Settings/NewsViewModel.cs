@@ -76,16 +76,12 @@ namespace Hercules.UI.ViewModels.Settings
         [RelayCommand]
         private void OpenUrl(string? url)
         {
-            if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            if (string.IsNullOrWhiteSpace(url))
                 return;
 
             try
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = url,
-                    UseShellExecute = true
-                });
+                Utilities.OpenWebsite(url);
             }
             catch (Exception ex)
             {
@@ -192,7 +188,12 @@ namespace Hercules.UI.ViewModels.Settings
                     {
                         if (!File.Exists(localPath) || !fromCache)
                         {
-                            var data = await _http.GetByteArrayAsync(uri, ct);
+                            var data = await SecureDownload.DownloadBytesBoundedAsync(
+                                _http,
+                                uri,
+                                10L * 1024 * 1024,
+                                "image/",
+                                ct);
                             await SafeWriteAllBytesAsync(localPath, data, ct);
                         }
 
