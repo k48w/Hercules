@@ -25,8 +25,15 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void MobilePage_Loaded(object sender, System.Windows.RoutedEventArgs e)
         {
-            await StartInstallationAsync();
-            OpenRemoteDesktopUrl();
+            try
+            {
+                await StartInstallationAsync();
+                OpenRemoteDesktopUrl();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("MobilePage::MobilePage_Loaded", ex);
+            }
         }
 
         private void OpenRemoteDesktopUrl()

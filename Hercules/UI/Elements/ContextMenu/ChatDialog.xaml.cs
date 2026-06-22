@@ -20,17 +20,24 @@ namespace Hercules.UI.Elements.ContextMenu
 
         private async void Emoji_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ComboBox cb && cb.SelectedItem != null)
+            try
             {
-                if (cb.DataContext is ChatMessage msg &&
-                    DataContext is DiscordChatViewModel vm &&
-                    vm.SelectedTab != null)
+                if (sender is ComboBox cb && cb.SelectedItem != null)
                 {
-                    string emoji = cb.SelectedItem.ToString();
+                    if (cb.DataContext is ChatMessage msg &&
+                        DataContext is DiscordChatViewModel vm &&
+                        vm.SelectedTab != null)
+                    {
+                        string emoji = cb.SelectedItem.ToString();
 
-                    await vm.SelectedTab.ReactToMessage(msg, emoji);
-                    cb.SelectedIndex = -1;
+                        await vm.SelectedTab.ReactToMessage(msg, emoji);
+                        cb.SelectedIndex = -1;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("DiscordChatWindow::Emoji_SelectionChanged", ex);
             }
         }
 

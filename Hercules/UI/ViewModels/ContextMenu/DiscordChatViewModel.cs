@@ -315,55 +315,62 @@ namespace Hercules.UI.Chat
 
             private async void AttachImage()
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog
+                try
                 {
-                    Filter = "Image Files|*.jpg;*.jpeg;*.png;*.gif;*.bmp",
-                    Multiselect = false
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    var path = dialog.FileName;
-
-                    try
+                    var dialog = new Microsoft.Win32.OpenFileDialog
                     {
-                        using var fileStream = File.OpenRead(path);
-                        var content = new MultipartFormDataContent();
-                        var streamContent = new StreamContent(fileStream);
-                        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                        content.Add(streamContent, "file", Path.GetFileName(path));
+                        Filter = "Image Files|*.jpg;*.jpeg;*.png;*.gif;*.bmp",
+                        Multiselect = false
+                    };
 
-                        var response = await _httpClient.PostAsync(
-                            $"https://discord.com/api/v10/channels/{ChannelId}/messages",
-                            content
-                        );
-                        response.EnsureSuccessStatusCode();
+                    if (dialog.ShowDialog() == true)
+                    {
+                        var path = dialog.FileName;
 
-                        var json = await response.Content.ReadAsStringAsync();
-                        var msg = JsonSerializer.Deserialize<DiscordMessage>(json);
-
-                        if (msg != null)
+                        try
                         {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                Messages.Add(new ChatMessage
-                                {
-                                    Id = msg.id,
-                                    Author = msg.author.username,
-                                    DisplayUsername = msg.author.username,
-                                    Content = msg.content ?? "",
-                                    TimestampDateTime = DateTime.Parse(msg.timestamp),
-                                    Attachments = new ObservableCollection<string>(msg.attachments?.Select(a => a.url) ?? new string[] { path })
-                                });
-                            });
+                            using var fileStream = File.OpenRead(path);
+                            var content = new MultipartFormDataContent();
+                            var streamContent = new StreamContent(fileStream);
+                            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                            content.Add(streamContent, "file", Path.GetFileName(path));
 
-                            _parentVm.SaveChats();
+                            var response = await _httpClient.PostAsync(
+                                $"https://discord.com/api/v10/channels/{ChannelId}/messages",
+                                content
+                            );
+                            response.EnsureSuccessStatusCode();
+
+                            var json = await response.Content.ReadAsStringAsync();
+                            var msg = JsonSerializer.Deserialize<DiscordMessage>(json);
+
+                            if (msg != null)
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    Messages.Add(new ChatMessage
+                                    {
+                                        Id = msg.id,
+                                        Author = msg.author.username,
+                                        DisplayUsername = msg.author.username,
+                                        Content = msg.content ?? "",
+                                        TimestampDateTime = DateTime.Parse(msg.timestamp),
+                                        Attachments = new ObservableCollection<string>(msg.attachments?.Select(a => a.url) ?? new string[] { path })
+                                    });
+                                });
+
+                                _parentVm.SaveChats();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Frontend.ShowMessageBox($"Failed to attach image: {ex.Message}");
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Frontend.ShowMessageBox($"Failed to attach image: {ex.Message}");
-                    }
+                }
+                catch (Exception ex)
+                {
+                    App.Logger.WriteException("ChatTab::AttachImage", ex);
                 }
             }
 

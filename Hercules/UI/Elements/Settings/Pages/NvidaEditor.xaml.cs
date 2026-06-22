@@ -286,9 +286,16 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void Apply_Click(object sender, RoutedEventArgs e)
         {
-            SaveEntries();
-            await NvidiaProfileManager.ApplyNipFile(NipPath);
-            LoadFromNipSafe();
+            try
+            {
+                SaveEntries();
+                await NvidiaProfileManager.ApplyNipFile(NipPath);
+                LoadFromNipSafe();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("NvidiaFFlagEditorPage::Apply_Click", ex);
+            }
         }
 
         private void SetupFileWatcher()

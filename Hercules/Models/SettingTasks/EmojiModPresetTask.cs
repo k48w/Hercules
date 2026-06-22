@@ -31,41 +31,48 @@ namespace Hercules.Models.SettingTasks
         {
             const string LOG_IDENT = "EmojiModPresetTask::Execute";
 
-            var query = QueryCurrentValue();
-
-            if (NewState != EmojiType.Default && (query is null || query.FirstOrDefault().Key != NewState))
+            try
             {
-                try
+                var query = QueryCurrentValue();
+
+                if (NewState != EmojiType.Default && (query is null || query.FirstOrDefault().Key != NewState))
                 {
-                    var response = await App.HttpClient.GetAsync(NewState.GetUrl());
+                    try
+                    {
+                        var response = await App.HttpClient.GetAsync(NewState.GetUrl());
 
-                    response.EnsureSuccessStatusCode();
+                        response.EnsureSuccessStatusCode();
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+                        Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
 
-                    await using var fileStream = new FileStream(_filePath, FileMode.Create);
-                    await response.Content.CopyToAsync(fileStream);
+                        await using var fileStream = new FileStream(_filePath, FileMode.Create);
+                        await response.Content.CopyToAsync(fileStream);
+
+                        OriginalState = NewState;
+                    }
+                    catch (Exception ex)
+                    {
+                        App.Logger.WriteException(LOG_IDENT, ex);
+
+                        Frontend.ShowConnectivityDialog(
+                            String.Format(Strings.Dialog_Connectivity_UnableToConnect, "GitHub"),
+                            $"{Strings.Menu_Mods_Presets_EmojiType_Error}\n\n{Strings.Dialog_Connectivity_TryAgainLater}",
+                            MessageBoxImage.Warning,
+                            ex
+                        );
+                    }
+                }
+                else if (query is not null && query.Any())
+                {
+                    Filesystem.AssertReadOnly(_filePath);
+                    File.Delete(_filePath);
 
                     OriginalState = NewState;
                 }
-                catch (Exception ex)
-                {
-                    App.Logger.WriteException(LOG_IDENT, ex);
-
-                    Frontend.ShowConnectivityDialog(
-                        String.Format(Strings.Dialog_Connectivity_UnableToConnect, "GitHub"),
-                        $"{Strings.Menu_Mods_Presets_EmojiType_Error}\n\n{Strings.Dialog_Connectivity_TryAgainLater}",
-                        MessageBoxImage.Warning,
-                        ex
-                    );
-                }
             }
-            else if (query is not null && query.Any())
+            catch (Exception ex)
             {
-                Filesystem.AssertReadOnly(_filePath);
-                File.Delete(_filePath);
-
-                OriginalState = NewState;
+                App.Logger.WriteException(LOG_IDENT, ex);
             }
         }
     }

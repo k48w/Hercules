@@ -259,13 +259,20 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void ClearSearch(bool refresh = true)
         {
-            SearchTextBox.Text = "";
-            _searchFilter = "";
+            try
+            {
+                SearchTextBox.Text = "";
+                _searchFilter = "";
 
-            if (refresh)
-                ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
+                if (refresh)
+                    ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::ClearSearch", ex);
+            }
         }
 
         private void ShowAddDialog()
@@ -284,86 +291,107 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void ShowProfilesDialog()
         {
-            var dialog = new FlagProfilesDialog();
-            dialog.ShowDialog();
-
-            if (dialog.Result != MessageBoxResult.OK)
-                return;
-
-            if (dialog.Tabs.SelectedIndex == 0)
-                App.FastFlags.SaveBackup(dialog.SaveBackup.Text);
-            else if (dialog.Tabs.SelectedIndex == 1)
+            try
             {
-                if (dialog.LoadBackup.SelectedValue == null)
-                    return;
-                App.FastFlags.LoadBackup(dialog.LoadBackup.SelectedValue.ToString(), dialog.ClearFlags.IsChecked);
-            }
+                var dialog = new FlagProfilesDialog();
+                dialog.ShowDialog();
 
-            Thread.Sleep(1000);
-            ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
+                if (dialog.Result != MessageBoxResult.OK)
+                    return;
+
+                if (dialog.Tabs.SelectedIndex == 0)
+                    App.FastFlags.SaveBackup(dialog.SaveBackup.Text);
+                else if (dialog.Tabs.SelectedIndex == 1)
+                {
+                    if (dialog.LoadBackup.SelectedValue == null)
+                        return;
+                    App.FastFlags.LoadBackup(dialog.LoadBackup.SelectedValue.ToString(), dialog.ClearFlags.IsChecked);
+                }
+
+                Thread.Sleep(1000);
+                ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::ShowProfilesDialog", ex);
+            }
         }
 
         private async void ShowFFlagSearchDialog()
         {
-            var dialog = new FFlagSearchDialog(); 
-            dialog.ShowDialog();
-            await Task.Delay(1000);
-            ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
+            try
+            {
+                var dialog = new FFlagSearchDialog();
+                dialog.ShowDialog();
+                await Task.Delay(1000);
+                ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::ShowFFlagSearchDialog", ex);
+            }
         }
 
         private async void AddSingle(string name, string value)
         {
-            FastFlag? entry;
-
-            if (App.FastFlags.GetValue(name) is null)
+            try
             {
-                entry = new FastFlag
+                FastFlag? entry;
+
+                if (App.FastFlags.GetValue(name) is null)
                 {
-                    Name = name,
-                    Value = value
-                };
+                    entry = new FastFlag
+                    {
+                        Name = name,
+                        Value = value
+                    };
 
-                if (!name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
-                    ClearSearch();
+                    if (!name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
+                        ClearSearch();
 
-                App.FastFlags.SetValue(entry.Name, entry.Value);
-                _fastFlagList.Add(entry);
-            }
-            else
-            {
-                Frontend.ShowMessageBox(Strings.Menu_FastFlagEditor_AlreadyExists, MessageBoxImage.Information);
-
-                bool refresh = false;
-
-                if (!_showPresets && FastFlagManager.PresetFlags.Values.Contains(name))
+                    App.FastFlags.SetValue(entry.Name, entry.Value);
+                    _fastFlagList.Add(entry);
+                }
+                else
                 {
-                    TogglePresetsButton.IsChecked = true;
-                    _showPresets = true;
-                    refresh = true;
+                    Frontend.ShowMessageBox(Strings.Menu_FastFlagEditor_AlreadyExists, MessageBoxImage.Information);
+
+                    bool refresh = false;
+
+                    if (!_showPresets && FastFlagManager.PresetFlags.Values.Contains(name))
+                    {
+                        TogglePresetsButton.IsChecked = true;
+                        _showPresets = true;
+                        refresh = true;
+                    }
+
+                    if (!name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ClearSearch(false);
+                        refresh = true;
+                    }
+
+                    if (refresh)
+                        ReloadList();
+                    await LoadKnownFlagsAsync();
+                    UpdateExistsColumn();
+
+                    entry = _fastFlagList.FirstOrDefault(x => x.Name == name);
                 }
 
-                if (!name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
-                {
-                    ClearSearch(false);
-                    refresh = true;
-                }
-
-                if (refresh)
-                    ReloadList();
-                await LoadKnownFlagsAsync();
-                UpdateExistsColumn();
-
-                entry = _fastFlagList.FirstOrDefault(x => x.Name == name);
+                DataGrid.SelectedItem = entry;
+                DataGrid.ScrollIntoView(entry);
+                UpdateTotalFlagsCount();
+                UpdateCrashRate();
             }
-
-            DataGrid.SelectedItem = entry;
-            DataGrid.ScrollIntoView(entry);
-            UpdateTotalFlagsCount();
-            UpdateCrashRate();
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::AddSingle", ex);
+            }
         }
 
         private void ImportJSON(string json)
@@ -573,16 +601,23 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void ToggleButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not ToggleButton button)
-                return;
+            try
+            {
+                if (sender is not ToggleButton button)
+                    return;
 
-            DataGrid.Columns[0].Visibility = button.IsChecked ?? false ? Visibility.Visible : Visibility.Collapsed;
+                DataGrid.Columns[0].Visibility = button.IsChecked ?? false ? Visibility.Visible : Visibility.Collapsed;
 
-            _showPresets = button.IsChecked ?? true;
-            ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
-            UpdateExistsColumn();
+                _showPresets = button.IsChecked ?? true;
+                ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::ToggleButton_Click", ex);
+            }
         }
 
         private void ExportJSONButton_Click(object sender, RoutedEventArgs e)
@@ -771,9 +806,16 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void ReloadUI()
         {
-            ReloadList();
-            await LoadKnownFlagsAsync();
-            UpdateExistsColumn();
+            try
+            {
+                ReloadList();
+                await LoadKnownFlagsAsync();
+                UpdateExistsColumn();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorPage::ReloadUI", ex);
+            }
         }
 
         private void ShowInfoMessage(string message)
@@ -801,36 +843,43 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (sender is not TextBox textbox) return;
-
-            string newSearch = textbox.Text.Trim();
-
-            if (newSearch == _lastSearch && (DateTime.Now - _lastSearchTime).TotalMilliseconds < _debounceDelay)
-                return;
-
-            _searchCancellationTokenSource?.Cancel();
-            _searchCancellationTokenSource = new CancellationTokenSource();
-
-            _searchFilter = newSearch;
-            _lastSearch = newSearch;
-            _lastSearchTime = DateTime.Now;
-
             try
             {
-                await Task.Delay(_debounceDelay, _searchCancellationTokenSource.Token);
+                if (sender is not TextBox textbox) return;
 
-                if (_searchCancellationTokenSource.Token.IsCancellationRequested)
+                string newSearch = textbox.Text.Trim();
+
+                if (newSearch == _lastSearch && (DateTime.Now - _lastSearchTime).TotalMilliseconds < _debounceDelay)
                     return;
 
-                Dispatcher.Invoke(() =>
+                _searchCancellationTokenSource?.Cancel();
+                _searchCancellationTokenSource = new CancellationTokenSource();
+
+                _searchFilter = newSearch;
+                _lastSearch = newSearch;
+                _lastSearchTime = DateTime.Now;
+
+                try
                 {
-                    ReloadList();
-                    UpdateExistsColumn();
-                    ShowSearchSuggestion(newSearch);
-                });
+                    await Task.Delay(_debounceDelay, _searchCancellationTokenSource.Token);
+
+                    if (_searchCancellationTokenSource.Token.IsCancellationRequested)
+                        return;
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        ReloadList();
+                        UpdateExistsColumn();
+                        ShowSearchSuggestion(newSearch);
+                    });
+                }
+                catch (TaskCanceledException)
+                {
+                }
             }
-            catch (TaskCanceledException)
+            catch (Exception ex)
             {
+                App.Logger.WriteException("FastFlagEditorPage::SearchTextBox_TextChanged", ex);
             }
         }
 

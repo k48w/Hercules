@@ -40,29 +40,36 @@ namespace Hercules.UI.ViewModels.Settings
 
         private async void DoCountdown(CancellationToken token)
         {
-            CanContinue = false;
-            OnPropertyChanged(nameof(CanContinue));
-
-            for (int i = 10; i > 0; i--)
+            try
             {
-                ContinueButtonText = $"({i}) {Strings.Menu_FastFlagEditor_Warning_Continue}";
+                CanContinue = false;
+                OnPropertyChanged(nameof(CanContinue));
+
+                for (int i = 10; i > 0; i--)
+                {
+                    ContinueButtonText = $"({i}) {Strings.Menu_FastFlagEditor_Warning_Continue}";
+                    OnPropertyChanged(nameof(ContinueButtonText));
+
+                    try
+                    {
+                        await Task.Delay(1000, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        return;
+                    }
+                }
+
+                ContinueButtonText = Strings.Menu_FastFlagEditor_Warning_Continue;
                 OnPropertyChanged(nameof(ContinueButtonText));
 
-                try
-                {
-                    await Task.Delay(1000, token);
-                }
-                catch (TaskCanceledException)
-                {
-                    return;
-                }
+                CanContinue = true;
+                OnPropertyChanged(nameof(CanContinue));
             }
-
-            ContinueButtonText = Strings.Menu_FastFlagEditor_Warning_Continue;
-            OnPropertyChanged(nameof(ContinueButtonText));
-
-            CanContinue = true;
-            OnPropertyChanged(nameof(CanContinue));
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FastFlagEditorWarningViewModel::DoCountdown", ex);
+            }
         }
 
         private void Continue()

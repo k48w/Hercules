@@ -1624,8 +1624,15 @@ namespace Hercules.UI.Elements.Settings
 
         private async void OnRequestCloseWindow(object? sender, EventArgs e)
         {
-            await Task.Yield();
-            Close();
+            try
+            {
+                await Task.Yield();
+                Close();
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("MainWindow::OnRequestCloseWindow", ex);
+            }
         }
 
         private void OnSaveAndLaunchButtonClick(object sender, EventArgs e)

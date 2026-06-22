@@ -53,177 +53,191 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void BtnLaunchGame_Click(object sender, RoutedEventArgs e)
         {
-            var vm = (ShortcutsViewModel)DataContext;
-            var launchGameId = vm.GameID?.Trim();
-            var instanceId = vm.GameInstanceId?.Trim();
-            var isPrivateServer = vm.IsPrivateServer;
-            var privateServerInput = vm.PrivateServerCode?.Trim();
-
-            if (string.IsNullOrEmpty(launchGameId) && string.IsNullOrEmpty(privateServerInput))
-            {
-                Frontend.ShowMessageBox("Please enter a Game ID or a Private Server Link.");
-                return;
-            }
-
             try
             {
-                if (!string.IsNullOrEmpty(instanceId))
+                var vm = (ShortcutsViewModel)DataContext;
+                var launchGameId = vm.GameID?.Trim();
+                var instanceId = vm.GameInstanceId?.Trim();
+                var isPrivateServer = vm.IsPrivateServer;
+                var privateServerInput = vm.PrivateServerCode?.Trim();
+
+                if (string.IsNullOrEmpty(launchGameId) && string.IsNullOrEmpty(privateServerInput))
                 {
-                    var dir = Path.GetDirectoryName(instanceFilePath);
-                    if (!string.IsNullOrEmpty(dir))
-                        Directory.CreateDirectory(dir);
-
-                    File.WriteAllText(instanceFilePath, instanceId);
+                    Frontend.ShowMessageBox("Please enter a Game ID or a Private Server Link.");
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
-                Frontend.ShowMessageBox($"Failed to save Game Instance ID.\n\nError: {ex.Message}");
-            }
 
-            if (isPrivateServer && !string.IsNullOrEmpty(privateServerInput))
-            {
                 try
                 {
-                    string folderPath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "Hercules"
-                    );
-                    Directory.CreateDirectory(folderPath);
-                    string privateCodePath = Path.Combine(folderPath, "PrivateServerCode.txt");
-                    File.WriteAllText(privateCodePath, privateServerInput);
+                    if (!string.IsNullOrEmpty(instanceId))
+                    {
+                        var dir = Path.GetDirectoryName(instanceFilePath);
+                        if (!string.IsNullOrEmpty(dir))
+                            Directory.CreateDirectory(dir);
+
+                        File.WriteAllText(instanceFilePath, instanceId);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Frontend.ShowMessageBox($"Failed to save Private Server Code.\n\nError: {ex.Message}");
-                }
-            }
-
-            string launchUrl;
-
-            if (isPrivateServer)
-            {
-                if (string.IsNullOrEmpty(privateServerInput))
-                {
-                    Frontend.ShowMessageBox("Please enter your Private Server Share Link or Code.");
-                    return;
+                    Frontend.ShowMessageBox($"Failed to save Game Instance ID.\n\nError: {ex.Message}");
                 }
 
-                string code = privateServerInput;
-                string placeId = launchGameId;
-
-                if (privateServerInput.StartsWith("https://www.roblox.com/share?", StringComparison.OrdinalIgnoreCase))
+                if (isPrivateServer && !string.IsNullOrEmpty(privateServerInput))
                 {
                     try
                     {
-                        var uri = new Uri(privateServerInput);
-                        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                        var extractedCode = query["code"];
-                        if (!string.IsNullOrEmpty(extractedCode))
-                            code = extractedCode;
-
-                        using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
-                        var resp = await client.GetAsync(privateServerInput);
-
-                        if (resp.StatusCode == System.Net.HttpStatusCode.Found && resp.Headers.Location != null)
-                        {
-                            var match = Regex.Match(resp.Headers.Location.ToString(), @"/games/(\d+)/");
-                            if (match.Success)
-                                placeId = match.Groups[1].Value;
-                        }
+                        string folderPath = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                            "Hercules"
+                        );
+                        Directory.CreateDirectory(folderPath);
+                        string privateCodePath = Path.Combine(folderPath, "PrivateServerCode.txt");
+                        File.WriteAllText(privateCodePath, privateServerInput);
                     }
                     catch (Exception ex)
                     {
-                        Frontend.ShowMessageBox($"Failed to parse Roblox share link.\n\nError: {ex.Message}");
+                        Frontend.ShowMessageBox($"Failed to save Private Server Code.\n\nError: {ex.Message}");
+                    }
+                }
+
+                string launchUrl;
+
+                if (isPrivateServer)
+                {
+                    if (string.IsNullOrEmpty(privateServerInput))
+                    {
+                        Frontend.ShowMessageBox("Please enter your Private Server Share Link or Code.");
                         return;
                     }
-                }
 
-                if (string.IsNullOrEmpty(placeId))
-                {
-                    Frontend.ShowMessageBox("Could not detect Game ID from the share link.");
-                    return;
-                }
+                    string code = privateServerInput;
+                    string placeId = launchGameId;
 
-                launchUrl = $"https://www.roblox.com/share?code={Uri.EscapeDataString(code)}&type=Server";
-            }
-            else
-            {
-                launchUrl = $"https://www.roblox.com/games/start?placeId={launchGameId}";
-                if (!string.IsNullOrEmpty(instanceId))
-                    launchUrl += $"&gameInstanceId={Uri.EscapeDataString(instanceId)}";
-            }
-
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = launchUrl,
-                    UseShellExecute = true
-                });
-
-                await Task.Run(() =>
-                {
-                    Process? robloxProcess = null;
-                    while (robloxProcess == null)
+                    if (privateServerInput.StartsWith("https://www.roblox.com/share?", StringComparison.OrdinalIgnoreCase))
                     {
-                        robloxProcess = Process.GetProcessesByName("RobloxPlayerBeta").FirstOrDefault();
-                        Thread.Sleep(500);
+                        try
+                        {
+                            var uri = new Uri(privateServerInput);
+                            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                            var extractedCode = query["code"];
+                            if (!string.IsNullOrEmpty(extractedCode))
+                                code = extractedCode;
+
+                            using var client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
+                            var resp = await client.GetAsync(privateServerInput);
+
+                            if (resp.StatusCode == System.Net.HttpStatusCode.Found && resp.Headers.Location != null)
+                            {
+                                var match = Regex.Match(resp.Headers.Location.ToString(), @"/games/(\d+)/");
+                                if (match.Success)
+                                    placeId = match.Groups[1].Value;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Frontend.ShowMessageBox($"Failed to parse Roblox share link.\n\nError: {ex.Message}");
+                            return;
+                        }
                     }
 
-                    Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
-                });
+                    if (string.IsNullOrEmpty(placeId))
+                    {
+                        Frontend.ShowMessageBox("Could not detect Game ID from the share link.");
+                        return;
+                    }
+
+                    launchUrl = $"https://www.roblox.com/share?code={Uri.EscapeDataString(code)}&type=Server";
+                }
+                else
+                {
+                    launchUrl = $"https://www.roblox.com/games/start?placeId={launchGameId}";
+                    if (!string.IsNullOrEmpty(instanceId))
+                        launchUrl += $"&gameInstanceId={Uri.EscapeDataString(instanceId)}";
+                }
+
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = launchUrl,
+                        UseShellExecute = true
+                    });
+
+                    await Task.Run(() =>
+                    {
+                        Process? robloxProcess = null;
+                        while (robloxProcess == null)
+                        {
+                            robloxProcess = Process.GetProcessesByName("RobloxPlayerBeta").FirstOrDefault();
+                            Thread.Sleep(500);
+                        }
+
+                        Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown());
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Frontend.ShowMessageBox($"Failed to launch the game.\n\nError: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Frontend.ShowMessageBox($"Failed to launch the game.\n\nError: {ex.Message}");
+                App.Logger.WriteException("ShortcutsPage::BtnLaunchGame_Click", ex);
             }
         }
 
         private async void BtnCreateShortcut_Click(object sender, RoutedEventArgs e)
         {
-            var vm = (ShortcutsViewModel)DataContext;
-
-            string displayName = string.IsNullOrWhiteSpace(vm.DisplayGameName)
-                ? "Roblox Game"
-                : vm.DisplayGameName;
-
-            foreach (char c in Path.GetInvalidFileNameChars())
-                displayName = displayName.Replace(c, '_');
-
-            if (displayName.Length > 80)
-                displayName = displayName[..80];
-
-            string launchUrl;
-            if (vm.IsPrivateServer && !string.IsNullOrWhiteSpace(vm.PrivateServerCode))
-                launchUrl = $"https://www.roblox.com/share?code={Uri.EscapeDataString(vm.PrivateServerCode)}&type=Server";
-            else
-                launchUrl = $"https://www.roblox.com/games/start?placeId={vm.GameID}";
-
-            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string shortcutPath = Path.Combine(desktop, $"{displayName}.url");
-
             try
             {
-                string? iconUrl = await FetchGameIconUrlAsync(vm.GameID);
-                string iconPath = await DownloadAndForceIcoAsync(iconUrl, displayName);
+                var vm = (ShortcutsViewModel)DataContext;
 
-                if (File.Exists(shortcutPath))
-                    File.Delete(shortcutPath);
+                string displayName = string.IsNullOrWhiteSpace(vm.DisplayGameName)
+                    ? "Roblox Game"
+                    : vm.DisplayGameName;
 
-                string contents =
-                    "[InternetShortcut]\n" +
-                    $"URL={launchUrl}\n" +
-                    $"IconFile={iconPath}\n" +
-                    "IconIndex=0\n";
+                foreach (char c in Path.GetInvalidFileNameChars())
+                    displayName = displayName.Replace(c, '_');
 
-                await File.WriteAllTextAsync(shortcutPath, contents, Encoding.UTF8);
+                if (displayName.Length > 80)
+                    displayName = displayName[..80];
 
-                Frontend.ShowMessageBox($"Shortcut created with game icon:\n{displayName}");
+                string launchUrl;
+                if (vm.IsPrivateServer && !string.IsNullOrWhiteSpace(vm.PrivateServerCode))
+                    launchUrl = $"https://www.roblox.com/share?code={Uri.EscapeDataString(vm.PrivateServerCode)}&type=Server";
+                else
+                    launchUrl = $"https://www.roblox.com/games/start?placeId={vm.GameID}";
+
+                string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                string shortcutPath = Path.Combine(desktop, $"{displayName}.url");
+
+                try
+                {
+                    string? iconUrl = await FetchGameIconUrlAsync(vm.GameID);
+                    string iconPath = await DownloadAndForceIcoAsync(iconUrl, displayName);
+
+                    if (File.Exists(shortcutPath))
+                        File.Delete(shortcutPath);
+
+                    string contents =
+                        "[InternetShortcut]\n" +
+                        $"URL={launchUrl}\n" +
+                        $"IconFile={iconPath}\n" +
+                        "IconIndex=0\n";
+
+                    await File.WriteAllTextAsync(shortcutPath, contents, Encoding.UTF8);
+
+                    Frontend.ShowMessageBox($"Shortcut created with game icon:\n{displayName}");
+                }
+                catch (Exception ex)
+                {
+                    Frontend.ShowMessageBox($"Failed to create shortcut.\n\nError: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
-                Frontend.ShowMessageBox($"Failed to create shortcut.\n\nError: {ex.Message}");
+                App.Logger.WriteException("ShortcutsPage::BtnCreateShortcut_Click", ex);
             }
         }
 

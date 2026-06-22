@@ -39,16 +39,23 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private async void ThemeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!isThemeInitialized)
+            try
             {
-                isThemeInitialized = true;
-                return;
-            }
+                if (!isThemeInitialized)
+                {
+                    isThemeInitialized = true;
+                    return;
+                }
 
-            Frontend.ShowMessageBox(
-                "Theme applied!\nIf the theme didn't apply, please restart Hercules.",
-                MessageBoxImage.Information
-            );
+                Frontend.ShowMessageBox(
+                    "Theme applied!\nIf the theme didn't apply, please restart Hercules.",
+                    MessageBoxImage.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AppearancePage::ThemeComboBox_SelectionChanged", ex);
+            }
         }
 
         private void OptionControl_Loaded(object sender, RoutedEventArgs e)

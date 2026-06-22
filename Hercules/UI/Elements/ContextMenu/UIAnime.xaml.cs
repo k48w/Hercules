@@ -90,21 +90,23 @@ namespace Hercules.UI.Elements.Overlay
 
         private async void InitializeWebView()
         {
-            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, null,
-            new CoreWebView2EnvironmentOptions("--disable-frame-rate-limit --disable-gpu-vsync"));
-            await AnimeWebView.EnsureCoreWebView2Async(env);
-            var core = AnimeWebView.CoreWebView2;
+            try
+            {
+                CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, null,
+                new CoreWebView2EnvironmentOptions("--disable-frame-rate-limit --disable-gpu-vsync"));
+                await AnimeWebView.EnsureCoreWebView2Async(env);
+                var core = AnimeWebView.CoreWebView2;
 
-            core.Settings.AreDefaultScriptDialogsEnabled = false;
-            core.Settings.AreDefaultContextMenusEnabled = false;
+                core.Settings.AreDefaultScriptDialogsEnabled = false;
+                core.Settings.AreDefaultContextMenusEnabled = false;
 
-            #if DEBUG
-            core.Settings.AreDevToolsEnabled = true;
-            #else
-            core.Settings.AreDevToolsEnabled = false;
+                #if DEBUG
+                core.Settings.AreDevToolsEnabled = true;
+                #else
+                core.Settings.AreDevToolsEnabled = false;
 #endif
 
-            string css = @"
+                string css = @"
     #ads, .ad-container, .popup, .modal, .banner, .overlay,
     .promo, .promotion, .deal-banner, .video-ad, .advertisement {
         display: none !important;
@@ -113,12 +115,12 @@ namespace Hercules.UI.Elements.Overlay
     * { scroll-behavior: smooth !important; }
 ";
 
-            string injectCssScript = $@"
+                string injectCssScript = $@"
         let style = document.createElement('style');
         style.innerHTML = `{css}`;
         document.head.appendChild(style);
     ";
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(injectCssScript);
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(injectCssScript);
             string observeEpScript = @"
         (function() {
             function sendEpisode() {
@@ -285,6 +287,11 @@ namespace Hercules.UI.Elements.Overlay
             };
 
             AnimeWebView.Source = new Uri(allowedUrl);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AnimeWindow::InitializeWebView", ex);
+            }
         }
 
         private string GetAnimeTitleFromUrl(string url)
@@ -401,29 +408,50 @@ namespace Hercules.UI.Elements.Overlay
 
         private async void Watch2GetherButton_Click(object sender, RoutedEventArgs e)
         {
-            string script = @"
+            try
+            {
+                string script = @"
         const btn = document.querySelector('a[href^=""/watch2gether""]');
         if(btn) btn.click();
     ";
-            await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+                await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AnimeWindow::Watch2GetherButton_Click", ex);
+            }
         }
 
         private async void RandomButton_Click(object sender, RoutedEventArgs e)
         {
-            string script = @"
+            try
+            {
+                string script = @"
         const btn = document.querySelector('a[href^=""/random""]');
         if(btn) btn.click();
     ";
-            await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+                await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AnimeWindow::RandomButton_Click", ex);
+            }
         }
 
         private async void CommunityButton_Click(object sender, RoutedEventArgs e)
         {
-            string script = @"
+            try
+            {
+                string script = @"
         const btn = document.querySelector('a[href^=""/community/board""]');
         if(btn) btn.click();
     ";
-            await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+                await AnimeWebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("AnimeWindow::CommunityButton_Click", ex);
+            }
         }
 
         public class EpisodeInfo
@@ -434,62 +462,69 @@ namespace Hercules.UI.Elements.Overlay
 
         private async void FullscreenButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isFullscreen)
+            try
             {
-                _prevLeft = Left;
-                _prevTop = Top;
-                _prevWidth = Width;
-                _prevHeight = Height;
-
-                MainGrid.RowDefinitions[1].Height = new GridLength(0);
-                MainBorder.Padding = new Thickness(0);
-                MainBorder.CornerRadius = new CornerRadius(0);
-
-                Left = SystemParameters.VirtualScreenLeft;
-                Top = SystemParameters.VirtualScreenTop;
-                Width = SystemParameters.VirtualScreenWidth;
-                Height = SystemParameters.VirtualScreenHeight;
-
-                _isFullscreen = true;
-
-                if (!_fullscreenNotificationShown)
+                if (!_isFullscreen)
                 {
-                    _fullscreenNotificationShown = true;
+                    _prevLeft = Left;
+                    _prevTop = Top;
+                    _prevWidth = Width;
+                    _prevHeight = Height;
 
-                    await Dispatcher.InvokeAsync(() =>
+                    MainGrid.RowDefinitions[1].Height = new GridLength(0);
+                    MainBorder.Padding = new Thickness(0);
+                    MainBorder.CornerRadius = new CornerRadius(0);
+
+                    Left = SystemParameters.VirtualScreenLeft;
+                    Top = SystemParameters.VirtualScreenTop;
+                    Width = SystemParameters.VirtualScreenWidth;
+                    Height = SystemParameters.VirtualScreenHeight;
+
+                    _isFullscreen = true;
+
+                    if (!_fullscreenNotificationShown)
                     {
-                        try
+                        _fullscreenNotificationShown = true;
+
+                        await Dispatcher.InvokeAsync(() =>
                         {
-                            if (!(App.Current.Resources["NotificationWindow"] is NotificationWindow notificationWindow))
+                            try
                             {
-                                notificationWindow = new NotificationWindow();
-                                App.Current.Resources["NotificationWindow"] = notificationWindow;
+                                if (!(App.Current.Resources["NotificationWindow"] is NotificationWindow notificationWindow))
+                                {
+                                    notificationWindow = new NotificationWindow();
+                                    App.Current.Resources["NotificationWindow"] = notificationWindow;
+                                }
+
+                                if (!notificationWindow.IsVisible)
+                                    notificationWindow.Show();
+
+                                notificationWindow.Activate();
+                                notificationWindow.ShowNotification("Press 'ESC' To Exit Fullscreen!", "https://online.fliphtml5.com/rxkgl/rnfj/files/large/95e7a87a9e858ca0085f76054ed3a16d.webp?1701104491", 4
+                                );
                             }
+                            catch { }
+                        });
+                    }
+                }
+                else
+                {
+                    MainGrid.RowDefinitions[1].Height = new GridLength(40);
+                    MainBorder.Padding = new Thickness(4);
+                    MainBorder.CornerRadius = new CornerRadius(4);
 
-                            if (!notificationWindow.IsVisible)
-                                notificationWindow.Show();
+                    Left = _prevLeft;
+                    Top = _prevTop;
+                    Width = _prevWidth;
+                    Height = _prevHeight;
 
-                            notificationWindow.Activate();
-                            notificationWindow.ShowNotification("Press 'ESC' To Exit Fullscreen!", "https://online.fliphtml5.com/rxkgl/rnfj/files/large/95e7a87a9e858ca0085f76054ed3a16d.webp?1701104491", 4
-                            );
-                        }
-                        catch { }
-                    });
+                    _isFullscreen = false;
+                    _fullscreenNotificationShown = false;
                 }
             }
-            else
+            catch (Exception ex)
             {
-                MainGrid.RowDefinitions[1].Height = new GridLength(40);
-                MainBorder.Padding = new Thickness(4);
-                MainBorder.CornerRadius = new CornerRadius(4);
-
-                Left = _prevLeft;
-                Top = _prevTop;
-                Width = _prevWidth;
-                Height = _prevHeight;
-
-                _isFullscreen = false;
-                _fullscreenNotificationShown = false;
+                App.Logger.WriteException("AnimeWindow::FullscreenButton_Click", ex);
             }
         }
     }
