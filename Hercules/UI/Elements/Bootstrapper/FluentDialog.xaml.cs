@@ -115,8 +115,15 @@ namespace Hercules.UI.Elements.Bootstrapper
 
         public async void ChangeBackground(string? newPath)
         {
-            CustomBackgroundPath = newPath;
-            await BackgroundManager.SetBackgroundAsync(BackgroundImage, CustomBackgroundPath);
+            try
+            {
+                CustomBackgroundPath = newPath;
+                await BackgroundManager.SetBackgroundAsync(BackgroundImage, CustomBackgroundPath);
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("FluentDialog::ChangeBackground", ex);
+            }
         }
 
         private void UiWindow_Closing(object sender, CancelEventArgs e)

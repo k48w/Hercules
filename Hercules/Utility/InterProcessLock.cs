@@ -36,6 +36,7 @@ namespace Hercules.Utility
                 IsAcquired = false;
             }
 
+            Mutex.Dispose();
             GC.SuppressFinalize(this);
         }
     }

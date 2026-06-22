@@ -347,19 +347,19 @@ namespace Hercules
 
             if (Directory.Exists(Paths.Base))
             {
-                // this is definitely one of the workaround hacks of all time
+                string scriptPath = Path.Combine(Path.GetTempPath(), $"Hercules_unlink_{Guid.NewGuid()}.cmd");
 
                 string deleteCommand;
-
                 if (deleteFolder)
-                    deleteCommand = $"del /Q \"{Paths.Base}\\*\" && rmdir \"{Paths.Base}\"";
+                    deleteCommand = $@"del /Q ""{Paths.Base}\*"" && rmdir ""{Paths.Base}""";
                 else
-                    deleteCommand = $"del /Q \"{Paths.Application}\"";
+                    deleteCommand = $@"del /Q ""{Paths.Application}""";
 
+                File.WriteAllText(scriptPath, $"@echo off\ntimeout 5 > nul\n{deleteCommand}\ndel /Q \"%~f0\"");
                 Process.Start(new ProcessStartInfo()
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c timeout 5 && {deleteCommand}",
+                    Arguments = $"/c \"{scriptPath}\"",
                     UseShellExecute = true,
                     WindowStyle = ProcessWindowStyle.Hidden
                 });

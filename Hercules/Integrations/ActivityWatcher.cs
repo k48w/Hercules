@@ -175,55 +175,71 @@ namespace Hercules.Integrations
         {
             const string LOG_IDENT = "ActivityWatcher::Start";
 
-            FileInfo logFileInfo;
-
-            if (string.IsNullOrEmpty(LogLocation))
+            try
             {
-                string logDirectory = Path.Combine(Paths.LocalAppData, "Roblox\\logs");
+                FileInfo logFileInfo;
 
-                if (!Directory.Exists(logDirectory))
-                    return;
-
-                App.Logger.WriteLine(LOG_IDENT, "Opening Roblox log file...");
-
-                while (true)
+                if (string.IsNullOrEmpty(LogLocation))
                 {
-                    logFileInfo = new DirectoryInfo(logDirectory)
-                        .GetFiles()
-                        .Where(x => x.Name.Contains("Player", StringComparison.OrdinalIgnoreCase)
-                                 && x.CreationTime <= DateTime.Now)
-                        .OrderByDescending(x => x.CreationTime)
-                        .First();
+                    string logDirectory = Path.Combine(Paths.LocalAppData, "Roblox\\logs");
 
-                    if (logFileInfo.CreationTime.AddSeconds(15) > DateTime.Now)
-                        break;
+                    if (!Directory.Exists(logDirectory))
+                        return;
 
-                    App.Logger.WriteLine(LOG_IDENT, $"Could not find recent enough log file, waiting... (newest is {logFileInfo.Name})");
-                    await Task.Delay(750);
+                    App.Logger.WriteLine(LOG_IDENT, "Opening Roblox log file...");
+
+                    while (true)
+                    {
+                        var logFiles = new DirectoryInfo(logDirectory)
+                            .GetFiles()
+                            .Where(x => x.Name.Contains("Player", StringComparison.OrdinalIgnoreCase)
+                                     && x.CreationTime <= DateTime.Now)
+                            .OrderByDescending(x => x.CreationTime)
+                            .ToList();
+
+                        if (logFiles.Count == 0)
+                        {
+                            App.Logger.WriteLine(LOG_IDENT, "No Roblox log files found, waiting...");
+                            await Task.Delay(750);
+                            continue;
+                        }
+
+                        logFileInfo = logFiles.First();
+
+                        if (logFileInfo.CreationTime.AddSeconds(15) > DateTime.Now)
+                            break;
+
+                        App.Logger.WriteLine(LOG_IDENT, $"Could not find recent enough log file, waiting... (newest is {logFileInfo.Name})");
+                        await Task.Delay(750);
+                    }
+
+                    LogLocation = logFileInfo.FullName;
+                }
+                else
+                {
+                    logFileInfo = new FileInfo(LogLocation);
                 }
 
-                LogLocation = logFileInfo.FullName;
+                OnLogOpen?.Invoke(this, EventArgs.Empty);
+
+                var logFileStream = logFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                App.Logger.WriteLine(LOG_IDENT, $"Opened {LogLocation}");
+
+                using var streamReader = new StreamReader(logFileStream);
+
+                while (!IsDisposed)
+                {
+                    string? log = await streamReader.ReadLineAsync();
+
+                    if (log is null)
+                        await Task.Delay(700);
+                    else
+                        ReadLogEntry(log);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                logFileInfo = new FileInfo(LogLocation);
-            }
-
-            OnLogOpen?.Invoke(this, EventArgs.Empty);
-
-            var logFileStream = logFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            App.Logger.WriteLine(LOG_IDENT, $"Opened {LogLocation}");
-
-            using var streamReader = new StreamReader(logFileStream);
-
-            while (!IsDisposed)
-            {
-                string? log = await streamReader.ReadLineAsync();
-
-                if (log is null)
-                    await Task.Delay(700);
-                else
-                    ReadLogEntry(log);
+                App.Logger.WriteException("ActivityWatcher::Start", ex);
             }
         }
 
@@ -268,7 +284,9 @@ namespace Hercules.Integrations
                         return;
 
                     InGame = false;
-                    Data.PlaceId = long.Parse(match.Groups[2].Value);
+                    if (!long.TryParse(match.Groups[2].Value, out long placeId))
+                        return;
+                    Data.PlaceId = placeId;
                     Data.JobId = match.Groups[1].Value;
                     Data.MachineAddress = match.Groups[3].Value;
 
@@ -296,8 +314,12 @@ namespace Hercules.Integrations
                     if (match.Groups.Count != 3)
                         return;
 
-                    Data.UniverseId = long.Parse(match.Groups[1].Value);
-                    Data.UserId = long.Parse(match.Groups[2].Value);
+                    if (!long.TryParse(match.Groups[1].Value, out long universeId))
+                        return;
+                    if (!long.TryParse(match.Groups[2].Value, out long userId))
+                        return;
+                    Data.UniverseId = universeId;
+                    Data.UserId = userId;
 
                     if (History.Any())
                     {

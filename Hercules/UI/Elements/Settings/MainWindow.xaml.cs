@@ -1389,7 +1389,9 @@ namespace Hercules.UI.Elements.Settings
 
         private async void MainWindow_Loaded(object? sender, RoutedEventArgs e)
         {
-            LoadTabsStructure();
+            try
+            {
+                LoadTabsStructure();
             InitializeNavigation();
             if (App.Settings.Prop.GRADmentFR)
             {
@@ -1425,6 +1427,11 @@ namespace Hercules.UI.Elements.Settings
             else
             {
                 IntroOverlay.Visibility = Visibility.Collapsed;
+            }
+            }
+            catch (Exception ex)
+            {
+                App.Logger.WriteException("MainWindow::Loaded", ex);
             }
         }
 

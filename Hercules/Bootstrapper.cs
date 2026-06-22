@@ -1961,6 +1961,7 @@ namespace Hercules
 
         public async Task EnsureSkyboxPackDownloadedAsync()
         {
+            const string LOG_IDENT = "Bootstrapper::EnsureSkyboxPackDownloadedAsync";
             Directory.CreateDirectory(PackFolder);
 
             string latest = await GetLatestCommitShaAsync();
@@ -2012,7 +2013,18 @@ namespace Hercules
                     if (string.IsNullOrEmpty(entry.Name)) continue;
 
                     var parts = entry.FullName.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length < 2) continue;
+
                     string dest = Path.Combine(PackFolder, Path.Combine(parts.Skip(1).ToArray()));
+                    string fullDest = Path.GetFullPath(dest);
+                    string fullPack = Path.GetFullPath(PackFolder);
+
+                    if (!fullDest.StartsWith(fullPack, StringComparison.Ordinal))
+                    {
+                        App.Logger.WriteLine(LOG_IDENT, $"Skipping zip entry with path traversal: {entry.FullName}");
+                        continue;
+                    }
+
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
 
                     using var es = entry.Open();

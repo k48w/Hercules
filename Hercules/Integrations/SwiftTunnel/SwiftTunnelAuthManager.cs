@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using Hercules.Integrations.SwiftTunnel.Models;
 
+// ReSharper disable once UnusedType.Global
+
 namespace Hercules.Integrations.SwiftTunnel
 {
     /// <summary>
@@ -218,15 +220,8 @@ namespace Hercules.Integrations.SwiftTunnel
                 var json = JsonSerializer.Serialize(session);
                 var bytes = Encoding.UTF8.GetBytes(json);
 
-                // Simple obfuscation (XOR + base64)
-                var key = new byte[] { 0x53, 0x77, 0x69, 0x66, 0x74, 0x54, 0x75, 0x6E };
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] ^= key[i % key.Length];
-                }
-
-                var encoded = Convert.ToBase64String(bytes);
-                File.WriteAllText(GetSessionFilePath(), encoded);
+                var encrypted = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+                File.WriteAllBytes(GetSessionFilePath(), encrypted);
 
                 App.Logger.WriteLine("SwiftTunnelAuthManager", "Session saved to file");
             }
@@ -244,16 +239,8 @@ namespace Hercules.Integrations.SwiftTunnel
                 if (!File.Exists(path))
                     return null;
 
-                var encoded = File.ReadAllText(path);
-                var bytes = Convert.FromBase64String(encoded);
-
-                // Reverse obfuscation
-                var key = new byte[] { 0x53, 0x77, 0x69, 0x66, 0x74, 0x54, 0x75, 0x6E };
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    bytes[i] ^= key[i % key.Length];
-                }
-
+                var encrypted = File.ReadAllBytes(path);
+                var bytes = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
                 var json = Encoding.UTF8.GetString(bytes);
                 return JsonSerializer.Deserialize<AuthSession>(json);
             }

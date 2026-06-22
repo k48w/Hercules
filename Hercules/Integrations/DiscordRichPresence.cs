@@ -336,7 +336,24 @@ namespace Hercules.Integrations
                         SmallImageText = smallText
                     }
                 };
-                _originalPresence = _currentPresence;
+                _originalPresence = new DiscordRPC.RichPresence
+                {
+                    Details = _currentPresence.Details,
+                    State = _currentPresence.State,
+                    Timestamps = _currentPresence.Timestamps != null
+                        ? new Timestamps { Start = _currentPresence.Timestamps.Start, End = _currentPresence.Timestamps.End }
+                        : null,
+                    Assets = _currentPresence.Assets != null
+                        ? new Assets
+                        {
+                            LargeImageKey = _currentPresence.Assets.LargeImageKey,
+                            LargeImageText = _currentPresence.Assets.LargeImageText,
+                            SmallImageKey = _currentPresence.Assets.SmallImageKey,
+                            SmallImageText = _currentPresence.Assets.SmallImageText
+                        }
+                        : null,
+                    Buttons = _currentPresence.Buttons?.Select(b => new Button { Label = b.Label, Url = b.Url }).ToArray()
+                };
             }
 
             while (_messageQueue.TryDequeue(out var msg))

@@ -19,8 +19,6 @@ namespace Hercules.UI.ViewModels.Settings
 
         public ICommand SaveAndLaunchSettingsCommand => new RelayCommand(SaveAndLaunchSettings);
 
-        public event PropertyChangedEventHandler? PropertyChanged;
-
         public ICommand CloseWindowCommand => new RelayCommand(CloseWindow);
 
         public EventHandler? RequestSaveNoticeEvent;
@@ -106,7 +104,7 @@ namespace Hercules.UI.ViewModels.Settings
             }
 
             field = newValue;
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName ?? throw new ArgumentNullException(nameof(propertyName))));
+            OnPropertyChanged(propertyName ?? throw new ArgumentNullException(nameof(propertyName)));
 
             return true;
         }

@@ -41,16 +41,16 @@ namespace Hercules
 
         public static readonly string RobloxCookiesFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Roblox\LocalStorage\RobloxCookies.dat");
 
-        public static BuildMetadataAttribute BuildMetadata = Assembly.GetExecutingAssembly().GetCustomAttribute<BuildMetadataAttribute>()!;
+        public static readonly BuildMetadataAttribute? BuildMetadata = Assembly.GetExecutingAssembly().GetCustomAttribute<BuildMetadataAttribute>();
 
-        public static string Version = Assembly.GetExecutingAssembly().GetName().Version!.ToString();
+        public static string Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
 
         public static Bootstrapper? Bootstrapper { get; set; } = null!;
         public const int TaskbarProgressMaximum = 100;
 
-        public static bool IsActionBuild => !String.IsNullOrEmpty(BuildMetadata.CommitRef);
+        public static bool IsActionBuild => BuildMetadata is not null && !String.IsNullOrEmpty(BuildMetadata.CommitRef);
 
-        public static bool IsProductionBuild => IsActionBuild && BuildMetadata.CommitRef.StartsWith("tag", StringComparison.Ordinal);
+        public static bool IsProductionBuild => IsActionBuild && BuildMetadata!.CommitRef.StartsWith("tag", StringComparison.Ordinal);
 
         public static bool IsStudioVisible => !String.IsNullOrEmpty(App.State.Prop.Studio.VersionGuid);
 
@@ -85,12 +85,12 @@ namespace Hercules
 
         private CancellationTokenSource? _memoryTrimCts;
 
-        private static HttpClient? _httpClient;
-        public static HttpClient HttpClient => _httpClient ??= new HttpClient(
+        private static readonly Lazy<HttpClient> _httpClientLazy = new(() => new HttpClient(
             new HttpClientLoggingHandler(
                 new HttpClientHandler { AutomaticDecompression = DecompressionMethods.All }
             )
-        );
+        ), LazyThreadSafetyMode.ExecutionAndPublication);
+        public static HttpClient HttpClient => _httpClientLazy.Value;
 
         private static bool _showingExceptionDialog = false;
         public static DiscordRpcClient? DiscordClient;
@@ -110,7 +110,10 @@ namespace Hercules
 
             Logger.WriteLine("App::SoftTerminate", $"Terminating with exit code {exitCodeNum} ({exitCode})");
 
-            Current.Dispatcher.Invoke(() => Current.Shutdown(exitCodeNum));
+            if (Current.Dispatcher.CheckAccess())
+                Current.Shutdown(exitCodeNum);
+            else
+                Current.Dispatcher.Invoke(() => Current.Shutdown(exitCodeNum));
         }
 
         void GlobalExceptionHandler(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -135,10 +138,8 @@ namespace Hercules
             if (log)
                 Logger.WriteException("App::FinalizeExceptionHandling", ex);
 
-            if (_showingExceptionDialog)
+            if (Interlocked.CompareExchange(ref _showingExceptionDialog, true, false))
                 return;
-
-            _showingExceptionDialog = true;
 
             SendLog();
 
@@ -216,24 +217,27 @@ namespace Hercules
             Logger.WriteLine(LOG_IDENT, $"Starting {ProjectName} v{Version}");
             string userAgent = $"{ProjectName}/{Version}";
 
-            if (IsActionBuild)
+            if (BuildMetadata is not null)
             {
-                Logger.WriteLine(LOG_IDENT, $"Compiled {BuildMetadata.Timestamp.ToFriendlyString()} from commit {BuildMetadata.CommitHash} ({BuildMetadata.CommitRef})");
+                if (IsActionBuild)
+                {
+                    Logger.WriteLine(LOG_IDENT, $"Compiled {BuildMetadata.Timestamp.ToFriendlyString()} from commit {BuildMetadata.CommitHash} ({BuildMetadata.CommitRef})");
 
-                if (IsProductionBuild)
-                    userAgent += $" (Production)";
+                    if (IsProductionBuild)
+                        userAgent += $" (Production)";
+                    else
+                        userAgent += $" (Artifact {BuildMetadata.CommitHash}, {BuildMetadata.CommitRef})";
+                }
                 else
-                    userAgent += $" (Artifact {BuildMetadata.CommitHash}, {BuildMetadata.CommitRef})";
-            }
-            else
-            {
-                Logger.WriteLine(LOG_IDENT, $"Compiled {BuildMetadata.Timestamp.ToFriendlyString()} from {BuildMetadata.Machine}");
+                {
+                    Logger.WriteLine(LOG_IDENT, $"Compiled {BuildMetadata.Timestamp.ToFriendlyString()} from {BuildMetadata.Machine}");
 
 #if QA_BUILD
-                userAgent += " (QA)";
+                    userAgent += " (QA)";
 #else
-                userAgent += $" (Build {Convert.ToBase64String(Encoding.UTF8.GetBytes(BuildMetadata.Machine))})";
+                    userAgent += $" (Build {Convert.ToBase64String(Encoding.UTF8.GetBytes(BuildMetadata.Machine))})";
 #endif
+                }
             }
 
             Logger.WriteLine(LOG_IDENT, $"Loaded from {Paths.Process}");
@@ -251,43 +255,58 @@ namespace Hercules
             AssertWindowsOSVersion();
 
             // installation check begins here
-            using var uninstallKey = Registry.CurrentUser.OpenSubKey(UninstallKey);
             string? installLocation = null;
             bool fixInstallLocation = false;
 
-            if (uninstallKey?.GetValue("InstallLocation") is string value)
+            try
             {
-                if (Directory.Exists(value))
-                {
-                    installLocation = value;
-                }
-                else
-                {
-                    var match = Regex.Match(value, @"^[a-zA-Z]:\\Users\\([^\\]+)", RegexOptions.IgnoreCase);
+                using var uninstallKey = Registry.CurrentUser.OpenSubKey(UninstallKey);
 
-                    if (match.Success)
+                if (uninstallKey?.GetValue("InstallLocation") is string value)
+                {
+                    if (Directory.Exists(value))
                     {
-                        string newLocation = value.Replace(match.Value, Paths.UserProfile, StringComparison.InvariantCultureIgnoreCase);
+                        installLocation = value;
+                    }
+                    else
+                    {
+                        var match = Regex.Match(value, @"^[a-zA-Z]:\\Users\\([^\\]+)", RegexOptions.IgnoreCase);
 
-                        if (Directory.Exists(newLocation))
+                        if (match.Success)
                         {
-                            installLocation = newLocation;
-                            fixInstallLocation = true;
+                            string newLocation = value.Replace(match.Value, Paths.UserProfile, StringComparison.InvariantCultureIgnoreCase);
+
+                            if (Directory.Exists(newLocation))
+                            {
+                                installLocation = newLocation;
+                                fixInstallLocation = true;
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLine(LOG_IDENT, $"Failed to read uninstall key: {ex.Message}");
             }
 
             // silently change install location if we detect a portable run
             if (installLocation is null && Directory.GetParent(Paths.Process)?.FullName is string processDir)
             {
-                var files = Directory.GetFiles(processDir).Select(x => Path.GetFileName(x)).ToArray();
-
-                // check if settings.json and state.json are the only files in the folder
-                if (files.Length <= 3 && files.Contains("Settings.json") && files.Contains("State.json") && files.Contains("DownloadStats.json"))
+                try
                 {
-                    installLocation = processDir;
-                    fixInstallLocation = true;
+                    var files = Directory.GetFiles(processDir).Select(x => Path.GetFileName(x)).ToArray();
+
+                    // check if settings.json and state.json are the only files in the folder
+                    if (files.Length <= 3 && files.Contains("Settings.json") && files.Contains("State.json") && files.Contains("DownloadStats.json"))
+                    {
+                        installLocation = processDir;
+                        fixInstallLocation = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine(LOG_IDENT, $"Failed to check process directory: {ex.Message}");
                 }
             }
 
@@ -321,8 +340,11 @@ namespace Hercules
                 Paths.Initialize(installLocation);
 
                 // ensure executable is in the install directory
-                if (Paths.Process != Paths.Application && !File.Exists(Paths.Application))
-                    File.Copy(Paths.Process, Paths.Application);
+                if (Paths.Process != Paths.Application)
+                {
+                    try { File.Copy(Paths.Process, Paths.Application, overwrite: true); }
+                    catch (Exception ex) { Logger.WriteLine(LOG_IDENT, $"Failed to copy executable: {ex.Message}"); }
+                }
 
                 Logger.Initialize(LaunchSettings.UninstallFlag.Active);
 
@@ -462,6 +484,13 @@ namespace Hercules
                 {
                     musicVm.Dispose();
                 }
+
+                _memoryTrimCts?.Cancel();
+                _memoryTrimCts?.Dispose();
+                _memoryTrimCts = null;
+
+                if (_httpClientLazy.IsValueCreated)
+                    _httpClientLazy.Value.Dispose();
             }
             catch (Exception ex)
             {
