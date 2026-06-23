@@ -14,6 +14,41 @@
     <StackPanel>
         <TextBlock Text="Provides info on FFlags - Features." FontSize="13" />
 
+        <Border Margin="0,12,0,8"
+                Padding="16"
+                CornerRadius="12"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Integrity &amp; Diagnostics"
+                               FontSize="18"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Export a sanitized report with version, integrity checks, settings summary and recent logs. Useful for safe bug reports."
+                               Margin="0,4,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="DiagnosticStatusText"
+                               Margin="0,8,0,0"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <ui:Button Grid.Column="1"
+                           Margin="16,0,0,0"
+                           VerticalAlignment="Center"
+                           Icon="DocumentSave24"
+                           Content="Export diagnostic report"
+                           Click="ExportDiagnosticReport_Click" />
+            </Grid>
+        </Border>
+
         <Grid Margin="0,8,0,0" Height="578">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
