@@ -112,6 +112,9 @@ namespace Hercules
                 var version1 = GetVersionFromString(versionStr1);
                 var version2 = GetVersionFromString(versionStr2);
 
+                if (version1 is null || version2 is null)
+                    throw new ArgumentException("Invalid version format.");
+
                 return (VersionComparison)version1.CompareTo(version2);
             }
             catch (Exception)

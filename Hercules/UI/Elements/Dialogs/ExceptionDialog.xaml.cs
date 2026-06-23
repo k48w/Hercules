@@ -57,7 +57,7 @@ namespace Hercules.UI.Elements.Dialogs
 
         private void AddExceptionToTextBox(Exception exception)
         {
-            void AppendException(Exception ex, bool isInner)
+            void AppendException(Exception? ex, bool isInner)
             {
                 if (ex == null) return;
 
@@ -75,7 +75,7 @@ namespace Hercules.UI.Elements.Dialogs
         private string GetHelpMessage(string wikiUrl, string issueUrl) // when I read this 'gethelp' I just feel like I need help 💀
         {
             if (!App.IsActionBuild &&
-                !App.BuildMetadata.Machine.Contains("pizzaboxer", StringComparison.Ordinal)) // ah yes we use pizzabox
+                App.BuildMetadata.Machine?.Contains("pizzaboxer", StringComparison.Ordinal) != true) // ah yes we use pizzabox
             {
                 return string.Format(Strings.Dialog_Exception_Info_2_Alt, wikiUrl);
             }

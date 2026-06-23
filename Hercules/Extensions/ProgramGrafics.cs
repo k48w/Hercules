@@ -15,8 +15,8 @@ namespace RobloxLightingOverlay
 {
     public static class OverlayManager
     {
-        public static FxUI UI;
-        public static FxOverlay Overlay;
+        public static FxUI? UI;
+        public static FxOverlay? Overlay;
 
         public static void Start()
         {
@@ -104,7 +104,7 @@ namespace RobloxLightingOverlay
             };
         }
 
-        void OnRender(object sender, EventArgs e)
+        void OnRender(object? sender, EventArgs e)
         {
             double now = timer.Elapsed.TotalSeconds;
             double dt = now - last;
@@ -307,7 +307,10 @@ namespace RobloxLightingOverlay
 
         void Save()
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SAVE));
+            var saveDirectory = Path.GetDirectoryName(SAVE);
+            if (!string.IsNullOrEmpty(saveDirectory))
+                Directory.CreateDirectory(saveDirectory);
+
             File.WriteAllText(SAVE, JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true }));
         }
 

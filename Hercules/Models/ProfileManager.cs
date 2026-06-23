@@ -108,10 +108,10 @@ namespace Hercules.Integrations
 
             foreach (var node in doc.Descendants("ProfileSetting"))
             {
-                string name = node.Element("SettingNameInfo")?.Value;
-                string id = node.Element("SettingID")?.Value;
-                string value = node.Element("SettingValue")?.Value;
-                string type = node.Element("ValueType")?.Value;
+                string? name = node.Element("SettingNameInfo")?.Value;
+                string? id = node.Element("SettingID")?.Value;
+                string? value = node.Element("SettingValue")?.Value;
+                string? type = node.Element("ValueType")?.Value;
 
                 if (!TryNormalizeSettingId(id, out string fixedId))
                     continue;

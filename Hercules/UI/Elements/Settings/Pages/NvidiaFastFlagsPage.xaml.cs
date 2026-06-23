@@ -26,7 +26,7 @@ namespace Hercules.UI.Elements.Settings.Pages
 
         private void OpenFastFlagSettings_Click(object sender, RoutedEventArgs e)
         {
-            NavigationService?.Navigate(new FastFlagsPage());
+            _ = NavigationService?.Navigate(new FastFlagsPage());
         }
     }
 }

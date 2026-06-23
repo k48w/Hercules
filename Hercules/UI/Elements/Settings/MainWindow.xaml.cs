@@ -1082,7 +1082,7 @@ namespace Hercules.UI.Elements.Settings
 
             if (newPath != _currentBackgroundPath)
             {
-                SetBackgroundImage(newPath);
+                _ = SetBackgroundImage(newPath);
             }
 
             if (_gradientLayerOpacity != _appearanceViewModel.GradientOpacity)
@@ -1092,7 +1092,7 @@ namespace Hercules.UI.Elements.Settings
         private void ApplyBackgroundSettings()
         {
             if (!string.IsNullOrEmpty(_appearanceViewModel.BackgroundFilePath))
-                SetBackgroundImage(_appearanceViewModel.BackgroundFilePath);
+                _ = SetBackgroundImage(_appearanceViewModel.BackgroundFilePath);
 
             GradientLayerOpacity = _appearanceViewModel.GradientOpacity;
         }
@@ -1616,7 +1616,7 @@ namespace Hercules.UI.Elements.Settings
         {
             await Task.Delay(225);
             if (!Dispatcher.HasShutdownStarted)
-                Dispatcher.InvokeAsync(() => AlreadyRunningSnackbar?.Show());
+                await Dispatcher.InvokeAsync(() => AlreadyRunningSnackbar?.Show());
         }
 
         #endregion

@@ -1,6 +1,6 @@
 # Hercules — auditoria técnica
 
-Data: 2026-06-22
+Data: 2026-06-23
 
 ## Resultado desta revisão
 
@@ -25,8 +25,17 @@ Data: 2026-06-22
 - `dotnet build Hercules/Hercules.csproj --no-restore`: aprovado, 0 erros.
 - `dotnet build Hercules/Hercules.csproj -c Release --no-restore`: aprovado, 0 erros.
 - `git diff --check`: aprovado após a correção de whitespace.
-- O projeto ainda emite 619 warnings no build Release. Muitos vêm do `wpfui` incorporado; os avisos restantes incluem nulabilidade, membros não usados e chamadas assíncronas não aguardadas no código legado.
+- O projeto ainda emite 509 warnings no build Release. Muitos vêm do `wpfui` incorporado; os avisos restantes incluem nulabilidade, membros não usados e código legado de UI/overlays.
 - Não existe projeto de testes automatizados na solução; isso continua sendo a maior lacuna de validação.
+
+## Continuação em 2026-06-23
+
+- Reduzi os warnings Release de 619 para 509 sem alterar workflows do GitHub.
+- Corrigi contratos `INotifyPropertyChanged` para eventos anuláveis onde o padrão do .NET exige `PropertyChangedEventHandler?`.
+- Reforcei a presença do Discord para tolerar assets, thumbnails, nomes e localização ausentes, usando fallback seguro em vez de possível exceção.
+- Corrigi possíveis nulos em importação de perfis NVIDIA, registro de associação do Windows e watcher de limite de CPU.
+- Marquei chamadas assíncronas intencionalmente fire-and-forget com descarte explícito ou `await`, reduzindo ruído e deixando intenção clara.
+- Protegi diretórios de autosave/sessão de plugins quando `Path.GetDirectoryName(...)` retorna nulo.
 
 ## Próximas funções sugeridas
 

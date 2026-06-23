@@ -99,7 +99,7 @@ namespace Hercules
                     attempts++;
                     Thread.Sleep(delayMs);
                 }
-                catch (UnauthorizedAccessException ex) when (attempts < maxRetries)
+                catch (UnauthorizedAccessException) when (attempts < maxRetries)
                 {
                     attempts++;
                     Thread.Sleep(delayMs);

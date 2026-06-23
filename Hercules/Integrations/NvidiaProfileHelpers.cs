@@ -23,7 +23,7 @@ namespace Hercules.Integrations
             return uint.TryParse(entry.SettingId, out var dec) && dec == settingId;
         }
 
-        private static NvidiaEditorEntry Find(List<NvidiaEditorEntry> entries, uint settingId)
+        private static NvidiaEditorEntry? Find(List<NvidiaEditorEntry> entries, uint settingId)
             => entries.FirstOrDefault(e => MatchesId(e, settingId));
 
         public static string GetEnum(

@@ -1067,7 +1067,8 @@ namespace Hercules
                 {
                     while (!token.IsCancellationRequested)
                     {
-                        var parts = App.Settings.Prop.SelectedCpuPriority.Split(' ');
+                        var priorityText = App.Settings.Prop?.SelectedCpuPriority ?? priority;
+                        var parts = priorityText.Split(' ');
                         if (int.TryParse(parts[0], out int coreCount) && coreCount > 0)
                         {
                             int total = Environment.ProcessorCount;

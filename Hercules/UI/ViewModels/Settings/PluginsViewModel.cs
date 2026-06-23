@@ -26,11 +26,11 @@ namespace Hercules.UI.ViewModels.Settings
     public class PluginsViewModel : INotifyPropertyChanged
     {
         private bool _suppressCodeSync = false;
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(field, value)) return false;
             field = value;
@@ -42,8 +42,8 @@ namespace Hercules.UI.ViewModels.Settings
         public ObservableCollection<PluginModel> LoadedPlugins { get; } = new();
         public ObservableCollection<PluginModel> PublicPlugins { get; } = new();
 
-        private PluginModel _selectedPlugin;
-        public PluginModel SelectedPlugin
+        private PluginModel? _selectedPlugin;
+        public PluginModel? SelectedPlugin
         {
             get => _selectedPlugin;
             set
@@ -54,8 +54,8 @@ namespace Hercules.UI.ViewModels.Settings
             }
         }
 
-        private PluginModel _selectedPublicPlugin;
-        public PluginModel SelectedPublicPlugin
+        private PluginModel? _selectedPublicPlugin;
+        public PluginModel? SelectedPublicPlugin
         {
             get => _selectedPublicPlugin;
             set
@@ -67,7 +67,7 @@ namespace Hercules.UI.ViewModels.Settings
         #endregion
 
         #region Plugin Code & Preview
-        private string _pluginXamlCode;
+        private string _pluginXamlCode = string.Empty;
         public string PluginXamlCode
         {
             get => _pluginXamlCode;
@@ -83,7 +83,7 @@ namespace Hercules.UI.ViewModels.Settings
             }
         }
 
-        private string _pluginCsCode;
+        private string _pluginCsCode = string.Empty;
         public string PluginCsCode
         {
             get => _pluginCsCode;
@@ -98,14 +98,14 @@ namespace Hercules.UI.ViewModels.Settings
             }
         }
 
-        private FrameworkElement _pluginPreview;
-        public FrameworkElement PluginPreview
+        private FrameworkElement? _pluginPreview;
+        public FrameworkElement? PluginPreview
         {
             get => _pluginPreview;
             set => SetProperty(ref _pluginPreview, value);
         }
 
-        private string _newPluginName;
+        private string _newPluginName = string.Empty;
         public string NewPluginName
         {
             get => _newPluginName;
@@ -194,7 +194,9 @@ namespace Hercules.UI.ViewModels.Settings
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(PluginSessionPath));
+                var sessionDirectory = Path.GetDirectoryName(PluginSessionPath);
+                if (!string.IsNullOrEmpty(sessionDirectory))
+                    Directory.CreateDirectory(sessionDirectory);
 
                 var session = new
                 {
@@ -266,8 +268,8 @@ namespace Hercules.UI.ViewModels.Settings
 
         private class PlayAreaSession
         {
-            public List<PluginModel> Plugins { get; set; }
-            public string SelectedPlugin { get; set; }
+            public List<PluginModel> Plugins { get; set; } = new();
+            public string? SelectedPlugin { get; set; }
         }
 
         private void ConvertXamlToCSharp()
@@ -441,7 +443,10 @@ namespace Hercules.UI.ViewModels.Settings
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(AutoSavePath));
+                var autoSaveDirectory = Path.GetDirectoryName(AutoSavePath);
+                if (!string.IsNullOrEmpty(autoSaveDirectory))
+                    Directory.CreateDirectory(autoSaveDirectory);
+
                 using var fs = File.Create(AutoSavePath);
                 using var zip = new ICSharpCode.SharpZipLib.Zip.ZipOutputStream(fs);
 
@@ -476,8 +481,8 @@ namespace Hercules.UI.ViewModels.Settings
 
                 using var fs = File.OpenRead(AutoSavePath);
                 using var zip = new ZipInputStream(fs);
-                ZipEntry entry;
-                string xaml = null, cs = null;
+                ZipEntry? entry;
+                string? xaml = null, cs = null;
                 int entryCount = 0;
 
                 while ((entry = zip.GetNextEntry()) != null)

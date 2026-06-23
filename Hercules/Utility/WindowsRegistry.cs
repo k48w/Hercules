@@ -75,7 +75,7 @@ namespace Hercules.Utility
                 using var uriOpenKey = uriKey?.CreateSubKey(@"shell\\open");
                 using var uriCommandKey = uriOpenKey?.CreateSubKey("command");
 
-                if (uriKey == null || uriIconKey == null || uriCommandKey == null)
+                if (uriKey == null || uriIconKey == null || uriOpenKey == null || uriCommandKey == null)
                     throw new InvalidOperationException($"Failed to create subkeys for {RobloxPlaceKey}");
 
                 uriKey.SetValueSafe("", classDisplayName);

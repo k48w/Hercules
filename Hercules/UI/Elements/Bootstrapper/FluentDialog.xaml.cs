@@ -109,7 +109,7 @@ namespace Hercules.UI.Elements.Bootstrapper
 
         private void SetBackgroundImage()
         {
-            BackgroundManager.SetBackgroundAsync(BackgroundImage, CustomBackgroundPath);
+            _ = BackgroundManager.SetBackgroundAsync(BackgroundImage, CustomBackgroundPath);
 
         }
 

@@ -86,14 +86,17 @@ namespace Hercules.Integrations
             }
             else if (message.Command == "SetRichPresence")
             {
-                if (!TryDeserializePresence(message.Data, out Hercules.Models.HerculesRPC.RichPresence? presenceData))
+                if (!TryDeserializePresence(message.Data, out Hercules.Models.HerculesRPC.RichPresence? presenceData) ||
+                    presenceData is null)
                     return;
 
                 _currentPresence.Details = UpdateField(_currentPresence.Details, presenceData.Details, _originalPresence.Details, 128);
                 _currentPresence.State = UpdateField(_currentPresence.State, presenceData.State, _originalPresence.State, 128);
 
-                UpdateAssets(_currentPresence.Assets, _originalPresence.Assets, presenceData.SmallImage, true);
-                UpdateAssets(_currentPresence.Assets, _originalPresence.Assets, presenceData.LargeImage, false);
+                var currentAssets = EnsureAssets(_currentPresence);
+                var originalAssets = EnsureAssets(_originalPresence);
+                UpdateAssets(currentAssets, originalAssets, presenceData.SmallImage, true);
+                UpdateAssets(currentAssets, originalAssets, presenceData.LargeImage, false);
             }
 
             if (implicitUpdate)
@@ -120,6 +123,12 @@ namespace Hercules.Integrations
             if (newValue == "<reset>") return original;
             if (newValue.Length > maxLength) return current;
             return newValue;
+        }
+
+        private static Assets EnsureAssets(DiscordRPC.RichPresence presence)
+        {
+            presence.Assets ??= new Assets();
+            return presence.Assets;
         }
 
         private void UpdateAssets(Assets current, Assets original, RichPresenceImage? data, bool small)
@@ -210,7 +219,7 @@ namespace Hercules.Integrations
 
                 return totalFlags;
             }
-            catch (Exception ex)
+            catch
             {
                 return -1;
             }
@@ -278,7 +287,7 @@ namespace Hercules.Integrations
             string serverLocation = string.Empty;
             if (App.Settings.Prop.ServerLocationGame)
             {
-                try { serverLocation = await activity.QueryServerLocation(); }
+                try { serverLocation = await activity.QueryServerLocation() ?? "Unknown Location"; }
                 catch { serverLocation = "Unknown Location"; }
             }
 
@@ -302,22 +311,24 @@ namespace Hercules.Integrations
             }
 
             string largeImageKey = !string.IsNullOrWhiteSpace(App.Settings.Prop.UseCustomIcon)
-                ? App.Settings.Prop.UseCustomIcon
-                : (App.Settings.Prop.GameIconChecked ? universe.Thumbnail.ImageUrl : "");
+                ? App.Settings.Prop.UseCustomIcon!
+                : (App.Settings.Prop.GameIconChecked ? universe.Thumbnail.ImageUrl ?? "" : "");
 
             string largeImageText = !string.IsNullOrWhiteSpace(App.Settings.Prop.UseCustomIcon)
                 ? ""
-                : (App.Settings.Prop.GameIconChecked && App.Settings.Prop.GameNameChecked ? universe.Data.Name : "");
+                : (App.Settings.Prop.GameIconChecked && App.Settings.Prop.GameNameChecked ? universe.Data.Name ?? "" : "");
 
             if (_currentPresence != null)
             {
+                var assets = EnsureAssets(_currentPresence);
                 _currentPresence.Details = details;
                 _currentPresence.State = state;
-                _currentPresence.Assets.LargeImageKey = largeImageKey;
-                _currentPresence.Assets.LargeImageText = largeImageText;
-                _currentPresence.Assets.SmallImageKey = smallImage;
-                _currentPresence.Assets.SmallImageText = smallText;
+                assets.LargeImageKey = largeImageKey;
+                assets.LargeImageText = largeImageText;
+                assets.SmallImageKey = smallImage;
+                assets.SmallImageText = smallText;
                 _currentPresence.Buttons = GetButtons();
+                _currentPresence.Timestamps ??= new Timestamps();
                 _currentPresence.Timestamps.Start = timeStarted.ToUniversalTime();
             }
             else
@@ -403,7 +414,10 @@ namespace Hercules.Integrations
             try
             {
                 var user = await UserDetails.Fetch(activity.UserId);
-                return (user.Thumbnail.ImageUrl, $"{user.Data.DisplayName} (@{user.Data.Name})");
+                return (
+                    string.IsNullOrWhiteSpace(user.Thumbnail.ImageUrl) ? "hercules" : user.Thumbnail.ImageUrl,
+                    $"{user.Data.DisplayName} (@{user.Data.Name})"
+                );
             }
             catch
             {
